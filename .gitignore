@@ -1,0 +1,25 @@
+.env
+prowlarr-config/
+
+# Local artifacts
+{backend/
+*:Zone.Identifier
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editors
+.vscode/
+.idea/
+.DS_Store
+
+# Claude
+.claude/
