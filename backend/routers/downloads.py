@@ -21,8 +21,21 @@ async def add_torrent(req: AddTorrentRequest):
 
 @router.get("/queue")
 async def get_queue():
-    """Get current download queue from qBit."""
+    """Get current download queue from qBit. Auto-deletes completed torrents
+    (keeping files on disk) and triggers a Plex refresh when any complete."""
     torrents = await qbittorrent.get_torrents()
+    completed = {
+        t["hash"] for t in torrents
+        if t.get("state") == "uploading" or t.get("progress", 0) >= 1.0
+    }
+    for h in completed:
+        await qbittorrent.delete_torrent(h, delete_files=False)
+    if completed:
+        try:
+            await plex.refresh_library()
+        except Exception as e:
+            print(f"plex refresh failed after auto-delete: {e}")
+
     return [
         {
             "hash": t["hash"],
@@ -36,6 +49,7 @@ async def get_queue():
             "seeds": t["num_seeds"],
         }
         for t in torrents
+        if t["hash"] not in completed
     ]
 
 @router.delete("/{torrent_hash}")

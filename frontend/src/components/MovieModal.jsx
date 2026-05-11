@@ -46,7 +46,8 @@ export default function MovieModal({ movie, onClose }) {
       setDone(true)
       setTimeout(() => setDone(false), 4000)
     } catch (e) {
-      alert('Failed to add torrent. Check qBittorrent connection.')
+      const detail = e.response?.data?.detail
+      alert(detail ? `Failed to add torrent: ${detail}` : 'Failed to add torrent. Check qBittorrent connection.')
     }
     setDownloading(null)
   }
