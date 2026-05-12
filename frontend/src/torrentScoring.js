@@ -95,7 +95,10 @@ const SCORE_WEIGHTS = {
 // ─── Tier brackets (sizes in GB) ───────────────────────────────────────────
 
 const MOVIE_TIERS = {
-  quality: { min: 12, maxIdeal: 60 },
+  // Hard cap at 25 GB — files above that are excluded from Best Quality
+  // entirely. Stops 40-60 GB remux files from earning the badge over a
+  // well-encoded 20 GB release that's better for most users.
+  quality: { min: 12, max: 25 },
   value:   { min: 4,  max: 12 },
   budget:  { min: 0.7, max: 4 },
 }
@@ -147,9 +150,12 @@ function tiersForTorrent(torrent, ctx) {
 }
 
 function tierFor(sizeGB, tiers) {
-  if (sizeGB >= tiers.quality.min) return 'quality'
-  if (sizeGB >= tiers.value.min)   return 'value'
-  if (sizeGB >= tiers.budget.min)  return 'budget'
+  // Quality has an optional hard `max` (movies use it; TV brackets only set
+  // `maxIdeal` for soft penalty and leave `max` undefined → no hard cap).
+  const q = tiers.quality
+  if (sizeGB >= q.min && (q.max == null || sizeGB <= q.max)) return 'quality'
+  if (sizeGB >= tiers.value.min  && sizeGB <= tiers.value.max)  return 'value'
+  if (sizeGB >= tiers.budget.min && sizeGB <= tiers.budget.max) return 'budget'
   return null
 }
 
@@ -159,8 +165,10 @@ function sizeFitBonus(sizeGB, tiers, tier) {
   const bracket = tiers[tier]
   if (!bracket) return 0
   const lo = bracket.min
-  const hi = tier === 'quality' ? bracket.maxIdeal : bracket.max
-  // Heavy penalty for going above the "ideal max" (e.g. bloat in quality, or wrong tier)
+  // Prefer hard `max` when set (movies); else fall back to `maxIdeal`
+  // (TV uses this for a soft penalty above the ideal size).
+  const hi = bracket.max ?? bracket.maxIdeal
+  if (hi == null) return 0
   if (sizeGB > hi) return -4
   if (sizeGB < lo) return -4
   const mid = (lo + hi) / 2

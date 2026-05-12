@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from services import prowlarr, qbittorrent, plex, history
+from services import prowlarr, qbittorrent, plex, history, storage
 
 router = APIRouter(prefix="/downloads", tags=["downloads"])
 
@@ -69,6 +69,13 @@ async def delete_torrent(torrent_hash: str):
 async def plex_refresh():
     """Trigger Plex library scan."""
     return await plex.refresh_library()
+
+@router.get("/disk-usage")
+async def disk_usage():
+    """Detailed disk usage for the Plex media drive: total/free/used plus
+    Movies and TV-Shows folder breakdowns."""
+    return await storage.get_disk_usage()
+
 
 @router.get("/storage")
 async def storage_info():

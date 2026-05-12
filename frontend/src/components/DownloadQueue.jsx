@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Trash2, RefreshCw, HardDrive } from 'lucide-react'
-import { getQueue, deleteTorrent, refreshPlex, getStorage } from '../api'
+import { Trash2, RefreshCw } from 'lucide-react'
+import { getQueue, deleteTorrent, refreshPlex } from '../api'
 import useCompletionNotifications from '../hooks/useCompletionNotifications'
+import StorageBar from './StorageBar'
 
 function formatSize(bytes) {
   if (!bytes) return '?'
@@ -27,7 +28,6 @@ const STATE_LABELS = {
 
 export default function DownloadQueue() {
   const [queue, setQueue] = useState([])
-  const [storage, setStorage] = useState(null)
   const [plexMsg, setPlexMsg] = useState('')
   useCompletionNotifications(queue)
 
@@ -39,9 +39,8 @@ export default function DownloadQueue() {
 
   async function fetchAll() {
     try {
-      const [q, s] = await Promise.all([getQueue(), getStorage()])
+      const q = await getQueue()
       setQueue(q.data)
-      setStorage(s.data)
     } catch {}
   }
 
@@ -61,24 +60,20 @@ export default function DownloadQueue() {
     setTimeout(() => setPlexMsg(''), 3000)
   }
 
-  const freeGB = storage?.free_space ? (storage.free_space / 1e9).toFixed(1) : null
-
   return (
     <div className="queue-panel">
       <div className="queue-header">
         <h3 className="section-title">Download Queue</h3>
         <div className="queue-actions">
-          {storage && (
-            <div className="storage-info">
-              <HardDrive size={14} />
-              <span>{freeGB} GB free</span>
-            </div>
-          )}
           <button className="plex-btn" onClick={handlePlexRefresh}>
             <RefreshCw size={14} />
             {plexMsg || 'Refresh Plex'}
           </button>
         </div>
+      </div>
+
+      <div className="queue-storage">
+        <StorageBar />
       </div>
 
       {queue.length === 0 ? (
@@ -125,9 +120,12 @@ export default function DownloadQueue() {
           margin-bottom: 16px;
         }
         .queue-actions { display: flex; align-items: center; gap: 12px; }
-        .storage-info {
-          display: flex; align-items: center; gap: 6px;
-          font-size: 13px; color: var(--text-muted);
+        .queue-storage {
+          margin-bottom: 16px;
+          padding: 12px 14px;
+          background: var(--surface2);
+          border: 1px solid var(--border);
+          border-radius: 8px;
         }
         .plex-btn {
           background: var(--surface2);
@@ -199,7 +197,7 @@ export default function DownloadQueue() {
           }
           .queue-right { width: 100%; justify-content: space-between; }
           .queue-stats { gap: 10px; font-size: 10px; }
-          .storage-info, .plex-btn { font-size: 12px; }
+          .plex-btn { font-size: 12px; }
         }
       `}</style>
     </div>

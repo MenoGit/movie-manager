@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Film, Tv, Trash2, RefreshCw } from 'lucide-react'
 import { getDownloadHistory, clearDownloadHistory } from '../api'
+import StorageBar from './StorageBar'
 
 function formatSize(bytes) {
   if (!bytes) return ''
@@ -70,6 +71,10 @@ export default function HistoryOverlay({ onClose }) {
         </div>
 
         <div className="history-body">
+          <div className="history-storage">
+            <StorageBar pollMs={30000} />
+          </div>
+
           {items === null ? (
             <div className="history-empty">Loading…</div>
           ) : items.length === 0 ? (
@@ -136,6 +141,13 @@ export default function HistoryOverlay({ onClose }) {
         .history-body {
           overflow-y: auto;
           padding: 12px 18px 22px;
+        }
+        .history-storage {
+          margin-bottom: 18px;
+          padding: 12px 14px;
+          background: var(--surface2);
+          border: 1px solid var(--border);
+          border-radius: 8px;
         }
         .history-empty {
           text-align: center; padding: 40px 12px;
