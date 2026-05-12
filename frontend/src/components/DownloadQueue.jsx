@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Trash2, RefreshCw, HardDrive } from 'lucide-react'
 import { getQueue, deleteTorrent, refreshPlex, getStorage } from '../api'
+import useCompletionNotifications from '../hooks/useCompletionNotifications'
 
 function formatSize(bytes) {
   if (!bytes) return '?'
@@ -28,6 +29,7 @@ export default function DownloadQueue() {
   const [queue, setQueue] = useState([])
   const [storage, setStorage] = useState(null)
   const [plexMsg, setPlexMsg] = useState('')
+  useCompletionNotifications(queue, 'Movie download complete')
 
   useEffect(() => {
     fetchAll()

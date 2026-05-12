@@ -48,6 +48,50 @@ export function hasSpanishAudio(title) {
   return SPANISH_LONG.test(title) || SPANISH_SHORT.test(title) || MX_WITH_AUDIO.test(title)
 }
 
+// ── Quality preset preferences ──────────────────────────────────────────────
+export const DEFAULT_PREFS = {
+  resolution: 'any',     // 4K | 1080p | 720p | any
+  codec: 'any',          // AV1 | x265 | x264 | any
+  audio: 'any',          // Atmos | DTS-HD/TrueHD | DDP5.1 | AAC5.1 | any
+  hdr: 'any',            // DV | HDR10+ | HDR10 | SDR | any
+  maxSizeGB: 0,          // 0 = no limit
+  preferredTier: 'any',  // quality | value | budget | any
+}
+
+export function readPrefs() {
+  try {
+    const raw = localStorage.getItem('quality_prefs')
+    if (!raw) return { ...DEFAULT_PREFS }
+    return { ...DEFAULT_PREFS, ...JSON.parse(raw) }
+  } catch { return { ...DEFAULT_PREFS } }
+}
+
+export function writePrefs(p) {
+  try { localStorage.setItem('quality_prefs', JSON.stringify(p)) } catch {}
+}
+
+export function prefsActive(p) {
+  if (!p) return false
+  return p.resolution !== 'any' || p.codec !== 'any' || p.audio !== 'any'
+    || p.hdr !== 'any' || (p.maxSizeGB || 0) > 0 || p.preferredTier !== 'any'
+}
+
+/**
+ * Does a scored torrent satisfy ALL non-'any' preferences?
+ * Pass the result of scoreTorrent(t, ctx) as `score`.
+ */
+export function matchesPrefs(score, prefs) {
+  if (!score || !prefs || !prefsActive(prefs)) return false
+  const p = score.parsed
+  if (prefs.resolution !== 'any' && p.resolution !== prefs.resolution) return false
+  if (prefs.codec !== 'any' && p.codec !== prefs.codec) return false
+  if (prefs.audio !== 'any' && p.audio !== prefs.audio) return false
+  if (prefs.hdr !== 'any' && p.hdr !== prefs.hdr) return false
+  if (prefs.maxSizeGB > 0 && score.sizeGB > prefs.maxSizeGB) return false
+  if (prefs.preferredTier !== 'any' && score.tier !== prefs.preferredTier) return false
+  return true
+}
+
 /**
  * Short card label for a TV show's Plex progress. Backend list endpoints
  * only ship seasons_in_library + episodes_in_library_count (cheap, Plex-only).

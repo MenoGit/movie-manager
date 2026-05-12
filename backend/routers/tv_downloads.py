@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter
 from pydantic import BaseModel
-from services import prowlarr, qbittorrent, plex
+from services import prowlarr, qbittorrent, plex, history
 
 router = APIRouter(prefix="/tv-downloads", tags=["tv-downloads"])
 
@@ -30,12 +30,19 @@ async def get_queue():
     """Active TV downloads. Auto-deletes completed torrents (keeping files
     on disk) and triggers a Plex TV-library refresh when any complete."""
     torrents = await qbittorrent.get_torrents(category="tv")
-    completed = {
-        t["hash"] for t in torrents
+    completed_items = [
+        t for t in torrents
         if t.get("state") == "uploading" or t.get("progress", 0) >= 1.0
-    }
-    for h in completed:
-        await qbittorrent.delete_torrent(h, delete_files=False)
+    ]
+    completed = {t["hash"] for t in completed_items}
+    for t in completed_items:
+        await history.append({
+            "type": "tv",
+            "name": t.get("name"),
+            "hash": t.get("hash"),
+            "size": t.get("size"),
+        })
+        await qbittorrent.delete_torrent(t["hash"], delete_files=False)
     if completed:
         try:
             await plex.refresh_tv_library()

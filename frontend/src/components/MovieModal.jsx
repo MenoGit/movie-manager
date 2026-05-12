@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { X, Download, Search, Play, Check, AlertTriangle, Maximize2, Minimize2, Star } from 'lucide-react'
 import { getMovieDetail, searchTorrents, addTorrent, refreshPlex } from '../api'
-import { hasSpanishAudio } from '../utils'
+import { hasSpanishAudio, readPrefs, matchesPrefs, prefsActive } from '../utils'
 import {
   scoreTorrent, pickBestThree, qualityTag,
   scoreBreakdown, tierContextLabel, TIER_META,
@@ -50,6 +50,10 @@ export default function MovieModal({ movie, onClose }) {
   const [expanded, setExpanded] = useState(false)
   const [spanishOnly, setSpanishOnly] = useState(false)
   const [trailerOpen, setTrailerOpen] = useState(false)
+  // Read prefs at mount; we don't need to react to changes mid-modal since
+  // closing/reopening the SettingsOverlay re-reads on next mount of MovieModal.
+  const prefs = useMemo(() => readPrefs(), [])
+  const prefsOn = useMemo(() => prefsActive(prefs), [prefs])
 
   const showLowQualityWarning = useMemo(() => {
     if (torrents.length === 0) return false
@@ -141,6 +145,12 @@ export default function MovieModal({ movie, onClose }) {
 
   async function handleDownload(torrent) {
     if (!torrent.magnet) return alert('No magnet link available for this torrent.')
+    if (movie.in_library) {
+      const ok = window.confirm(
+        `"${movie.title}" is already in your Plex library. Download anyway?`
+      )
+      if (!ok) return
+    }
     setDownloading(torrent.title)
     try {
       await addTorrent(torrent.magnet, movie.title)
@@ -336,8 +346,9 @@ export default function MovieModal({ movie, onClose }) {
                   const qtag = qualityTag(t.title)
                   const pickTier = pickTitleMap.get(t.title) || null
                   const tierMeta = pickTier ? TIER_META[pickTier] : null
+                  const prefsMatch = prefsOn && matchesPrefs(t._score, prefs)
                   return (
-                    <div key={i} className={`torrent-row ${pickTier ? `best-pick best-pick-${pickTier}` : ''}`}>
+                    <div key={i} className={`torrent-row ${pickTier ? `best-pick best-pick-${pickTier}` : ''} ${prefsMatch ? 'prefs-match' : ''}`}>
                       <span className="torrent-name">
                         {tierMeta && (
                           <span
@@ -607,6 +618,10 @@ export default function MovieModal({ movie, onClose }) {
         }
         .torrent-row:hover { background: var(--surface2); }
         .torrent-row.best-pick { padding-left: 12px; }
+        .torrent-row.prefs-match {
+          box-shadow: inset 3px 0 0 #a855f7;
+        }
+        .torrent-row.prefs-match.best-pick { padding-left: 14px; }
         .torrent-row.best-pick-quality {
           background: linear-gradient(90deg, rgba(232,160,48,0.10), transparent 70%);
           border-left: 2px solid var(--accent);

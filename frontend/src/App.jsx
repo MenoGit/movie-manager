@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import './index.css'
-import { Film, LayoutGrid, Tv } from 'lucide-react'
+import { Film, LayoutGrid, Tv, Clock, Settings as SettingsIcon } from 'lucide-react'
 import Home from './pages/Home'
 import Browse from './pages/Browse'
 import TVHome from './pages/TVHome'
 import TVBrowse from './pages/TVBrowse'
+import HistoryOverlay from './components/HistoryOverlay'
+import SettingsOverlay from './components/SettingsOverlay'
 
 export default function App() {
   const [view, setView] = useState(() => {
@@ -13,6 +15,8 @@ export default function App() {
   const [mode, setMode] = useState(() => {
     try { return localStorage.getItem('mode') || 'movies' } catch { return 'movies' }
   })
+  const [showHistory, setShowHistory] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   useEffect(() => {
     try { localStorage.setItem('view', view) } catch {}
@@ -48,28 +52,48 @@ export default function App() {
             TV Shows
           </button>
         </div>
-        <div className="view-toggle" role="tablist" aria-label="Layout">
+        <div className="header-actions">
           <button
-            className={`view-btn ${view === 'grid' ? 'active' : ''}`}
-            onClick={() => setView('grid')}
-            title="Grid view"
-            aria-pressed={view === 'grid'}
+            className="icon-btn"
+            onClick={() => setShowHistory(true)}
+            title="Download history"
+            aria-label="Download history"
           >
-            <LayoutGrid size={16} />
+            <Clock size={16} />
           </button>
           <button
-            className={`view-btn ${view === 'browse' ? 'active' : ''}`}
-            onClick={() => setView('browse')}
-            title="Browse view"
-            aria-pressed={view === 'browse'}
+            className="icon-btn"
+            onClick={() => setShowSettings(true)}
+            title="Quality preferences"
+            aria-label="Quality preferences"
           >
-            <Tv size={16} />
+            <SettingsIcon size={16} />
           </button>
+          <div className="view-toggle" role="tablist" aria-label="Layout">
+            <button
+              className={`view-btn ${view === 'grid' ? 'active' : ''}`}
+              onClick={() => setView('grid')}
+              title="Grid view"
+              aria-pressed={view === 'grid'}
+            >
+              <LayoutGrid size={16} />
+            </button>
+            <button
+              className={`view-btn ${view === 'browse' ? 'active' : ''}`}
+              onClick={() => setView('browse')}
+              title="Browse view"
+              aria-pressed={view === 'browse'}
+            >
+              <Tv size={16} />
+            </button>
+          </div>
         </div>
       </header>
       <main>
         {page}
       </main>
+      {showHistory && <HistoryOverlay onClose={() => setShowHistory(false)} />}
+      {showSettings && <SettingsOverlay onClose={() => setShowSettings(false)} />}
 
       <style>{`
         .app-header {
@@ -110,13 +134,25 @@ export default function App() {
         }
         .mode-tab:hover { color: var(--text); }
         .mode-tab.active { background: var(--accent); color: #000; font-weight: 600; }
+        .header-actions {
+          margin-left: auto;
+          display: flex; align-items: center; gap: 8px;
+        }
+        .icon-btn {
+          background: var(--surface2); border: 1px solid var(--border);
+          color: var(--text-muted);
+          width: 36px; height: 36px;
+          border-radius: 8px;
+          display: flex; align-items: center; justify-content: center;
+          transition: all 0.15s;
+        }
+        .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
         .view-toggle {
           display: flex; gap: 2px;
           padding: 3px;
           background: var(--surface2);
           border: 1px solid var(--border);
           border-radius: 8px;
-          margin-left: auto;
         }
         .view-btn {
           background: transparent;

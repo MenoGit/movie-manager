@@ -4,6 +4,7 @@ prowlarr-config/
 # Local artifacts
 {backend/
 *:Zone.Identifier
+backend/download_history.json
 
 # Node
 node_modules/

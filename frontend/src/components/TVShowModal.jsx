@@ -4,7 +4,7 @@ import {
   Maximize2, Minimize2, Star, Folder,
 } from 'lucide-react'
 import { getTVDetail, getTVSeason, searchTVTorrents, addTVTorrent } from '../api'
-import { hasSpanishAudio } from '../utils'
+import { hasSpanishAudio, readPrefs, matchesPrefs, prefsActive } from '../utils'
 import {
   scoreTorrent, pickBestThree, qualityTag,
   scoreBreakdown, tierContextLabel, TIER_META, isSeasonPack,
@@ -58,6 +58,8 @@ export default function TVShowModal({ show, onClose }) {
   const [spanishOnly, setSpanishOnly] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [trailerOpen, setTrailerOpen] = useState(false)
+  const prefs = useMemo(() => readPrefs(), [])
+  const prefsOn = useMemo(() => prefsActive(prefs), [prefs])
 
   useEffect(() => {
     document.body.classList.add('modal-open')
@@ -105,10 +107,23 @@ export default function TVShowModal({ show, onClose }) {
 
   async function handleAdd(torrent) {
     if (!torrent.magnet) return alert('No magnet link available.')
-    // Save path uses the season we're currently scoped to. If user searched
-    // for an episode, that's still under Season XX/. If scope is null
-    // (no narrowing), fall back to the season they're viewing.
     const seasonForFolder = scope.season ?? selectedSeason ?? 1
+
+    // Duplicate-protection: warn before re-downloading content the user has.
+    const progress = detail?.plex_progress
+    let warning = null
+    if (scope.episode != null) {
+      const have = detail?.plex_episodes?.[String(seasonForFolder)] || detail?.plex_episodes?.[seasonForFolder] || []
+      if (have.includes(scope.episode)) {
+        warning = `${show.title} S${seasonForFolder}E${scope.episode} is already in your Plex library. Download anyway?`
+      }
+    } else if (progress?.complete) {
+      warning = `"${show.title}" is fully in your Plex library. Download anyway?`
+    } else if (progress?.seasons_complete?.includes(seasonForFolder)) {
+      warning = `Season ${seasonForFolder} of "${show.title}" is already complete in Plex. Download anyway?`
+    }
+    if (warning && !window.confirm(warning)) return
+
     setDownloading(torrent.title)
     try {
       await addTVTorrent(torrent.magnet, show.title, seasonForFolder)
@@ -423,8 +438,9 @@ export default function TVShowModal({ show, onClose }) {
                   const pickTier = pickTitleMap.get(t.title) || null
                   const tierMeta = pickTier ? TIER_META[pickTier] : null
                   const isPack = isSeasonPack(t.title)
+                  const prefsMatch = prefsOn && matchesPrefs(t._score, prefs)
                   return (
-                    <div key={`r-${i}-${t.title}`} className={`torrent-row ${pickTier ? `best-pick best-pick-${pickTier}` : ''}`}>
+                    <div key={`r-${i}-${t.title}`} className={`torrent-row ${pickTier ? `best-pick best-pick-${pickTier}` : ''} ${prefsMatch ? 'prefs-match' : ''}`}>
                       <span className="torrent-name">
                         {tierMeta && (
                           <span
@@ -645,6 +661,8 @@ export default function TVShowModal({ show, onClose }) {
         .torrent-row { padding: 11px 14px; border-top: 1px solid var(--border); align-items: center; font-size: 13px; }
         .torrent-row:hover { background: var(--surface2); }
         .torrent-row.best-pick { padding-left: 12px; }
+        .torrent-row.prefs-match { box-shadow: inset 3px 0 0 #a855f7; }
+        .torrent-row.prefs-match.best-pick { padding-left: 14px; }
         .torrent-row.best-pick-quality { background: linear-gradient(90deg, rgba(232,160,48,0.10), transparent 70%); border-left: 2px solid var(--accent); }
         .torrent-row.best-pick-value   { background: linear-gradient(90deg, rgba(62,207,142,0.08), transparent 70%); border-left: 2px solid var(--green); }
         .torrent-row.best-pick-budget  { background: linear-gradient(90deg, rgba(168,85,247,0.08), transparent 70%); border-left: 2px solid #a855f7; }

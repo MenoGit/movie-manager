@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Trash2, RefreshCw, Tv } from 'lucide-react'
 import { getTVQueue, deleteTVTorrent, refreshTVPlex } from '../api'
+import useCompletionNotifications from '../hooks/useCompletionNotifications'
 
 function formatSize(bytes) {
   if (!bytes) return '?'
@@ -25,6 +26,7 @@ const STATE_LABELS = {
 export default function TVDownloadQueue() {
   const [queue, setQueue] = useState([])
   const [plexMsg, setPlexMsg] = useState('')
+  useCompletionNotifications(queue, 'TV download complete')
 
   useEffect(() => {
     fetchAll()
