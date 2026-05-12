@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Search, Bookmark, BookmarkCheck } from 'lucide-react'
 import MovieCard from '../components/MovieCard'
 import AnimeModal from '../components/AnimeModal'
+import MovieModal from '../components/MovieModal'
 import AnimeDownloadQueue from '../components/AnimeDownloadQueue'
 import {
   getTrendingAnime, getPopularAnime, getTopRatedAnime, getAiringAnime,
@@ -187,7 +188,11 @@ export default function AnimeHome() {
         </div>
       )}
 
-      {selectedShow && <AnimeModal show={selectedShow} onClose={() => setSelectedShow(null)} />}
+      {selectedShow && (
+        selectedShow.media_type === 'movie'
+          ? <MovieModal movie={selectedShow} onClose={() => setSelectedShow(null)} />
+          : <AnimeModal show={selectedShow} onClose={() => setSelectedShow(null)} />
+      )}
 
       <style>{`
         .home { padding: 24px; max-width: 1400px; margin: 0 auto; }

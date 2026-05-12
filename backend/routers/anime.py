@@ -58,6 +58,7 @@ async def _annotate(shows):
             in_lib = plex.normalize_title(s.get("name", "")) in fallback_titles
         s["in_library"] = in_lib
         s["poster_url"] = tmdb_anime.poster_url(s.get("poster_path"))
+        s["media_type"] = "tv"
 
     in_lib_shows = [s for s in shows if s["in_library"]]
     if in_lib_shows:
@@ -83,6 +84,7 @@ async def _annotate_movies(movies):
             in_lib = plex.normalize_title(m.get("title", "")) in fallback_titles
         m["in_library"] = in_lib
         m["poster_url"] = tmdb_anime.poster_url(m.get("poster_path"))
+        m["media_type"] = "movie"
     return movies
 
 

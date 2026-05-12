@@ -53,8 +53,9 @@ const SORTS = [
 
 export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePathLabel = 'TV-Shows' }) {
   const [detail, setDetail] = useState(null)
-  const [selectedSeason, setSelectedSeason] = useState(1)
+  const [selectedSeason, setSelectedSeason] = useState(null)
   const [seasonData, setSeasonData] = useState(null)
+  const [seasonError, setSeasonError] = useState(false)
   const [torrents, setTorrents] = useState([])
   const [torrentLoading, setTorrentLoading] = useState(false)
   const [downloading, setDownloading] = useState(null)
@@ -80,21 +81,31 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
-  // Initial load: full detail + first season episode list. Pick a reasonable
-  // starting season: smallest season_number with episodes (skip "Specials" season 0).
+  // Initial load: full detail + first season episode list. Prefer a real
+  // season (season_number > 0) but fall back to Season 0 if that's all
+  // TMDb has (some specials-only or single-OVA titles).
   useEffect(() => {
     api.getDetail(show.id).then(r => {
       setDetail(r.data)
-      const seasons = (r.data.seasons || []).filter(s => s.season_number > 0)
-      const startSeason = seasons[0]?.season_number ?? 1
+      const allSeasons = r.data.seasons || []
+      const real = allSeasons.filter(s => s.season_number > 0)
+      const startSeason = real.length > 0
+        ? real[0].season_number
+        : (allSeasons[0]?.season_number ?? null)
       setSelectedSeason(startSeason)
+    }).catch(() => {
+      // Detail itself failed — leave detail null; UI will show no-data state
     })
   }, [show.id])
 
   // Load season episode list whenever season changes
   useEffect(() => {
-    if (!selectedSeason || !detail) return
-    api.getSeason(show.id, selectedSeason).then(r => setSeasonData(r.data)).catch(() => setSeasonData(null))
+    if (selectedSeason == null || !detail) return
+    setSeasonError(false)
+    setSeasonData(null)
+    api.getSeason(show.id, selectedSeason)
+      .then(r => setSeasonData(r.data))
+      .catch(() => { setSeasonError(true); setSeasonData(null) })
   }, [selectedSeason, detail, show.id])
 
   async function fetchTorrents(season, episode) {
@@ -198,7 +209,12 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
 
   const year = (show.release_date || show.first_air_date || '').split('-')[0]
   const trailer = detail?.trailer
-  const realSeasons = (detail?.seasons || []).filter(s => s.season_number > 0)
+  // Show real seasons (1+). If detail exists but there are zero real seasons,
+  // fall back to Season 0 (specials) if any exist — better than an empty picker.
+  const allSeasons = detail?.seasons || []
+  const realSeasonsOnly = allSeasons.filter(s => s.season_number > 0)
+  const realSeasons = realSeasonsOnly.length > 0 ? realSeasonsOnly : allSeasons
+  const hasNoSeasonData = detail && allSeasons.length === 0
   const scopeLabel =
     scope.season == null ? 'all results'
     : scope.episode == null ? `Season ${scope.season} only`
@@ -287,6 +303,15 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
 
         {/* Seasons + episodes */}
         <div className="modal-body">
+          {hasNoSeasonData && (
+            <div className="no-seasons-fallback">
+              <p>No season data available from TMDb for this title.</p>
+              <button className="download-season-btn" onClick={() => fetchTorrents(null, null)}>
+                <Search size={14} /> Search Torrents Directly
+              </button>
+            </div>
+          )}
+
           {realSeasons.length > 0 && (
             <>
               <h3 className="section-title">Seasons</h3>
@@ -322,6 +347,16 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
                   </span>
                 )}
               </div>
+
+              {seasonError && (
+                <div className="season-error">
+                  <AlertTriangle size={14} />
+                  <span>Couldn't load episodes for Season {selectedSeason}.</span>
+                  <button className="season-error-search" onClick={() => fetchTorrents(null, null)}>
+                    <Search size={12} /> Search torrents directly
+                  </button>
+                </div>
+              )}
 
               {seasonData?.episodes?.length > 0 && (
                 <div className="episode-list">
@@ -640,6 +675,36 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
         .download-season-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--accent); color: var(--accent); padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; }
         .download-season-btn:hover { background: var(--accent); color: #000; }
         .plex-have { font-size: 12px; color: var(--green); }
+        .no-seasons-fallback {
+          padding: 24px 20px;
+          background: var(--surface2);
+          border: 1px dashed var(--border);
+          border-radius: var(--radius);
+          margin-bottom: 18px;
+          text-align: center;
+        }
+        .no-seasons-fallback p {
+          font-size: 13px; color: var(--text-muted);
+          margin-bottom: 14px;
+        }
+        .season-error {
+          display: flex; align-items: center; gap: 10px;
+          padding: 10px 14px; margin-bottom: 18px;
+          background: rgba(220,80,80,0.08);
+          border: 1px solid rgba(220,80,80,0.4);
+          border-radius: var(--radius);
+          font-size: 13px;
+          color: #ff9999;
+          flex-wrap: wrap;
+        }
+        .season-error-search {
+          display: inline-flex; align-items: center; gap: 4px;
+          background: transparent; border: 1px solid currentColor;
+          color: inherit;
+          padding: 4px 10px; border-radius: 6px; font-size: 12px;
+          margin-left: auto;
+        }
+        .season-error-search:hover { background: rgba(220,80,80,0.15); }
 
         .episode-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
         .episode-row {

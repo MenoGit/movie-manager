@@ -4,6 +4,7 @@ import HeroBanner from '../components/HeroBanner'
 import ContentRow from '../components/ContentRow'
 import AnimeDownloadQueue from '../components/AnimeDownloadQueue'
 import AnimeModal from '../components/AnimeModal'
+import MovieModal from '../components/MovieModal'
 import {
   getTrendingAnime, getAiringAnime, getAnimeMovies, getPopularAnime,
   getAnimeBySubgenre, searchAnime, getAnimeDetail,
@@ -31,14 +32,18 @@ export default function AnimeBrowse() {
   }, [])
 
   async function openShow(stub) {
-    if (stub.id) {
-      try {
-        const r = await getAnimeDetail(stub.id)
-        setSelectedShow({ ...stub, ...r.data })
-      } catch {
-        setSelectedShow(stub)
-      }
-    } else { setSelectedShow(stub) }
+    // Anime movies go straight to MovieModal — getAnimeDetail would 404
+    // since it hits the /tv/{id} TMDb endpoint with a movie id.
+    if (stub.media_type === 'movie' || !stub.id) {
+      setSelectedShow(stub)
+      return
+    }
+    try {
+      const r = await getAnimeDetail(stub.id)
+      setSelectedShow({ ...stub, ...r.data })
+    } catch {
+      setSelectedShow(stub)
+    }
   }
 
   async function handleSearch(e) {
@@ -96,7 +101,11 @@ export default function AnimeBrowse() {
         </>
       )}
 
-      {selectedShow && <AnimeModal show={selectedShow} onClose={() => setSelectedShow(null)} />}
+      {selectedShow && (
+        selectedShow.media_type === 'movie'
+          ? <MovieModal movie={selectedShow} onClose={() => setSelectedShow(null)} />
+          : <AnimeModal show={selectedShow} onClose={() => setSelectedShow(null)} />
+      )}
 
       <style>{`
         .browse { padding-bottom: 60px; }
