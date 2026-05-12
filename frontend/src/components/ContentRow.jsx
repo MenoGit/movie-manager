@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Check, Film, Sparkles } from 'lucide-react'
-import { isInTheaters, hasSpanish } from '../utils'
+import { isInTheaters, hasSpanish, plexProgressLabel } from '../utils'
 
 /**
  * Horizontal carousel of movie cards.
@@ -241,6 +241,16 @@ export default function ContentRow({ title, subtitle, fetcher, onOpen, variant =
           padding: 1px 5px;
           border-radius: 3px;
         }
+        .card-overlay-progress {
+          font-size: 10px;
+          color: var(--accent);
+          margin-top: 2px;
+          font-weight: 500;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .card-overlay-progress.complete { color: var(--green); }
 
         /* Top 10 numbered styling */
         .top10-card {
@@ -341,6 +351,11 @@ function RowCard({ movie, rank, onClick }) {
             <span className="card-overlay-es" title="Originally Spanish-language film">ES</span>
           )}
         </div>
+        {movie.in_library && movie.plex_progress && (
+          <div className={`card-overlay-progress ${movie.plex_progress.complete ? 'complete' : ''}`}>
+            {plexProgressLabel(movie.plex_progress)}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Check, Film, Sparkles } from 'lucide-react'
-import { isInTheaters, hasSpanish } from '../utils'
+import { isInTheaters, hasSpanish, plexProgressLabel } from '../utils'
 
 const STREAMING_LOGOS = {
   8: 'Netflix',
@@ -54,6 +54,11 @@ export default function MovieCard({ movie, onClick }) {
         <div className="movie-card-year">
           {movie.release_date?.split('-')[0]}
         </div>
+        {movie.in_library && movie.plex_progress && (
+          <div className={`movie-card-progress ${movie.plex_progress.complete ? 'complete' : ''}`}>
+            {plexProgressLabel(movie.plex_progress)}
+          </div>
+        )}
       </div>
 
       <style>{`
@@ -181,6 +186,16 @@ export default function MovieCard({ movie, onClick }) {
           font-size: 12px;
           color: var(--text-muted);
         }
+        .movie-card-progress {
+          font-size: 11px;
+          color: var(--accent);
+          margin-top: 4px;
+          font-weight: 500;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .movie-card-progress.complete { color: var(--green); }
         @media (max-width: 480px) {
           .movie-card-info { padding: 8px 10px 10px; }
           .movie-card-title { font-size: 12px; }

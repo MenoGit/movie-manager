@@ -47,3 +47,32 @@ export function hasSpanishAudio(title) {
   if (!title) return false
   return SPANISH_LONG.test(title) || SPANISH_SHORT.test(title) || MX_WITH_AUDIO.test(title)
 }
+
+/**
+ * Short card label for a TV show's Plex progress. Backend list endpoints
+ * only ship seasons_in_library + episodes_in_library_count (cheap, Plex-only).
+ * Detail endpoints additionally have total_episodes, seasons_complete, complete —
+ * those drive the modal's richer display.
+ */
+export function plexProgressLabel(p) {
+  if (!p) return null
+  if (p.complete) return '✓ Complete'
+  const eps = p.episodes_in_library_count || 0
+  if (eps === 0) return null
+  const seasons = p.seasons_in_library || []
+  let label = `${eps} ep${eps === 1 ? '' : 's'}`
+  if (seasons.length === 1) label = `S${seasons[0]} · ${label}`
+  else if (seasons.length > 1) {
+    const lo = Math.min(...seasons)
+    const hi = Math.max(...seasons)
+    label = `S${lo}-S${hi} · ${label}`
+  }
+  // If we have totals (detail level), suffix with the fraction
+  if (p.total_episodes && p.total_episodes > 0) {
+    label = `${eps}/${p.total_episodes} eps`
+    if (seasons.length > 1) {
+      label = `S${Math.min(...seasons)}-S${Math.max(...seasons)} · ${label}`
+    }
+  }
+  return label
+}

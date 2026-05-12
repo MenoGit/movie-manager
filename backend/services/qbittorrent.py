@@ -51,10 +51,27 @@ async def add_torrent(magnet: str, movie_title: str) -> dict:
         r.raise_for_status()
     return {"save_path": save_path, "title": safe_title}
 
-async def get_torrents() -> list:
-    """Get all active torrents."""
+async def add_tv_torrent(magnet: str, show_title: str, season_number: int) -> dict:
+    """Add a TV-show torrent. Save path is `<TV_SHOWS_PATH>/<Show Name>/Season XX/`
+    so Plex's TV agent picks it up automatically."""
+    safe_show = "".join(c for c in show_title if c.isalnum() or c in " ._-").strip()
+    season_folder = f"Season {int(season_number):02d}"
+    save_path = os.path.join(settings.tv_shows_path, safe_show, season_folder)
+
     async with _get_client() as client:
-        r = await client.get("/api/v2/torrents/info", params={"category": "movies"})
+        r = await client.post("/api/v2/torrents/add", data={
+            "urls": _rewrite_for_host(magnet),
+            "savepath": save_path,
+            "category": "tv",
+        })
+        r.raise_for_status()
+    return {"save_path": save_path, "show": safe_show, "season": int(season_number)}
+
+
+async def get_torrents(category: str = "movies") -> list:
+    """Get active torrents for a category. Defaults to 'movies' for back-compat."""
+    async with _get_client() as client:
+        r = await client.get("/api/v2/torrents/info", params={"category": category})
         r.raise_for_status()
         return r.json()
 

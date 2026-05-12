@@ -50,6 +50,61 @@ export const getRecommendations = (id, page = 1) =>
 export const getBecauseYouDownloaded = (count = 3) =>
   api.get('/movies/because-you-downloaded', { params: { count } })
 
+// ─── TV ──────────────────────────────────────────────────────────────────
+// TMDb uses 'name' + 'first_air_date' for shows. We alias them to title +
+// release_date so existing MovieCard / HeroBanner / ContentRow / utils
+// (isInTheaters, hasSpanish) work for TV without modification.
+function normalizeTV(s) {
+  if (!s || typeof s !== 'object') return s
+  return {
+    ...s,
+    title: s.title ?? s.name,
+    release_date: s.release_date ?? s.first_air_date,
+  }
+}
+function wrapTV(p) {
+  return p.then(r => ({
+    ...r,
+    data: Array.isArray(r.data) ? r.data.map(normalizeTV) : normalizeTV(r.data),
+  }))
+}
+
+export const getTrendingTV = (page = 1, filters) =>
+  wrapTV(api.get('/tv/trending', { params: applyFilters({ page }, filters) }))
+export const getTrendingTVDay = (page = 1) =>
+  wrapTV(api.get('/tv/trending', { params: { page, window: 'day' } }))
+export const getPopularTV = (page = 1, filters) =>
+  wrapTV(api.get('/tv/popular', { params: applyFilters({ page }, filters) }))
+export const getTopRatedTV = (page = 1, filters) =>
+  wrapTV(api.get('/tv/top-rated', { params: applyFilters({ page }, filters) }))
+export const getOnTheAir = (page = 1, filters) =>
+  wrapTV(api.get('/tv/on-the-air', { params: applyFilters({ page }, filters) }))
+export const getAiringToday = (page = 1, filters) =>
+  wrapTV(api.get('/tv/airing-today', { params: applyFilters({ page }, filters) }))
+export const getAllTimeBestTV = (page = 1, filters) =>
+  wrapTV(api.get('/tv/all-time-best', { params: applyFilters({ page }, filters) }))
+export const getHiddenGemsTV = (page = 1, filters) =>
+  wrapTV(api.get('/tv/hidden-gems', { params: applyFilters({ page }, filters) }))
+export const getTVByDecade = (decade, page = 1, filters) =>
+  wrapTV(api.get(`/tv/decade/${decade}`, { params: applyFilters({ page }, filters) }))
+export const getTVByGenre = (genreId, page = 1, filters) =>
+  wrapTV(api.get(`/tv/genre/${genreId}`, { params: applyFilters({ page }, filters) }))
+export const getTVByNetwork = (networkId, page = 1, filters) =>
+  wrapTV(api.get(`/tv/network/${networkId}`, { params: applyFilters({ page }, filters) }))
+export const getTVGenres = () => api.get('/tv/genres')
+export const searchTV = (q) => wrapTV(api.get('/tv/search', { params: { q } }))
+export const getTVDetail = (id) => wrapTV(api.get(`/tv/${id}`))
+export const getTVSeason = (id, season) => api.get(`/tv/${id}/season/${season}`)
+
+// TV downloads
+export const searchTVTorrents = (q, season, episode) =>
+  api.get('/tv-downloads/search', { params: { q, ...(season != null && { season }), ...(episode != null && { episode }) } })
+export const addTVTorrent = (magnet, show_title, season_number) =>
+  api.post('/tv-downloads/add', { magnet, show_title, season_number })
+export const getTVQueue = () => api.get('/tv-downloads/queue')
+export const deleteTVTorrent = (hash) => api.delete(`/tv-downloads/${hash}`)
+export const refreshTVPlex = () => api.post('/tv-downloads/plex-refresh')
+
 // Downloads
 export const searchTorrents = (q) => api.get('/downloads/search', { params: { q } })
 export const addTorrent = (magnet, movie_title) => api.post('/downloads/add', { magnet, movie_title })

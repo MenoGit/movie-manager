@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     plex_url: str
     plex_token: str
     movies_path: str = "/mnt/media/movies"
+    tv_shows_path: str = "/mnt/media/tv-shows"
 
     class Config:
         env_file = ".env"
