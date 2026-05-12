@@ -3,6 +3,7 @@ import { X, Download, Search, Play, Check, AlertTriangle, Maximize2, Minimize2, 
 import { getMovieDetail, searchTorrents, addTorrent, refreshPlex } from '../api'
 import { hasSpanishAudio, readPrefs, matchesPrefs, prefsActive } from '../utils'
 import AutoDownloadButton from './AutoDownloadButton'
+import TorrentDetailPanel from './TorrentDetailPanel'
 import {
   scoreTorrent, pickBestThree, qualityTag,
   scoreBreakdown, tierContextLabel, TIER_META,
@@ -51,6 +52,7 @@ export default function MovieModal({ movie, onClose }) {
   const [expanded, setExpanded] = useState(false)
   const [spanishOnly, setSpanishOnly] = useState(false)
   const [trailerOpen, setTrailerOpen] = useState(false)
+  const [detailTorrent, setDetailTorrent] = useState(null)
   // Read prefs at mount; we don't need to react to changes mid-modal since
   // closing/reopening the SettingsOverlay re-reads on next mount of MovieModal.
   const prefs = useMemo(() => readPrefs(), [])
@@ -364,8 +366,15 @@ export default function MovieModal({ movie, onClose }) {
                   const pickTier = pickTitleMap.get(t.title) || null
                   const tierMeta = pickTier ? TIER_META[pickTier] : null
                   const prefsMatch = prefsOn && matchesPrefs(t._score, prefs)
+                  const isSelected = detailTorrent?.title === t.title
                   return (
-                    <div key={i} className={`torrent-row ${pickTier ? `best-pick best-pick-${pickTier}` : ''} ${prefsMatch ? 'prefs-match' : ''}`}>
+                    <div
+                      key={i}
+                      className={`torrent-row ${pickTier ? `best-pick best-pick-${pickTier}` : ''} ${prefsMatch ? 'prefs-match' : ''} ${isSelected ? 'row-selected' : ''}`}
+                      onClick={() => setDetailTorrent(t)}
+                      role="button"
+                      tabIndex={0}
+                    >
                       <span className="torrent-name">
                         {tierMeta && (
                           <span
@@ -402,7 +411,7 @@ export default function MovieModal({ movie, onClose }) {
                       <span className="torrent-indexer">{t.indexer}</span>
                       <button
                         className="download-btn"
-                        onClick={() => handleDownload(t)}
+                        onClick={(e) => { e.stopPropagation(); handleDownload(t) }}
                         disabled={downloading === t.title}
                       >
                         {downloading === t.title
@@ -994,7 +1003,21 @@ export default function MovieModal({ movie, onClose }) {
           .modal-tags .tag { font-size: 11px; padding: 1px 8px; }
           .trailer-btn { font-size: 12px; padding: 5px 12px; }
         }
+        .torrent-row { cursor: pointer; }
+        .torrent-row.row-selected {
+          outline: 1px solid var(--accent);
+          outline-offset: -1px;
+        }
       `}</style>
+
+      {detailTorrent && (
+        <TorrentDetailPanel
+          torrent={detailTorrent}
+          context={scoringContext}
+          onClose={() => setDetailTorrent(null)}
+          onDownload={(t) => { handleDownload(t); setDetailTorrent(null) }}
+        />
+      )}
     </div>
   )
 }

@@ -14,6 +14,7 @@ const DEFAULT_API = {
 }
 import { hasSpanishAudio, readPrefs, matchesPrefs, prefsActive } from '../utils'
 import AutoDownloadButton from './AutoDownloadButton'
+import TorrentDetailPanel from './TorrentDetailPanel'
 import {
   scoreTorrent, pickBestThree, qualityTag,
   scoreBreakdown, tierContextLabel, TIER_META, isSeasonPack,
@@ -68,6 +69,7 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
   const [spanishOnly, setSpanishOnly] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [trailerOpen, setTrailerOpen] = useState(false)
+  const [detailTorrent, setDetailTorrent] = useState(null)
   const prefs = useMemo(() => readPrefs(), [])
   const prefsOn = useMemo(() => prefsActive(prefs), [prefs])
 
@@ -513,7 +515,13 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
                   const isPack = isSeasonPack(t.title)
                   const prefsMatch = prefsOn && matchesPrefs(t._score, prefs)
                   return (
-                    <div key={`r-${i}-${t.title}`} className={`torrent-row ${pickTier ? `best-pick best-pick-${pickTier}` : ''} ${prefsMatch ? 'prefs-match' : ''}`}>
+                    <div
+                      key={`r-${i}-${t.title}`}
+                      className={`torrent-row ${pickTier ? `best-pick best-pick-${pickTier}` : ''} ${prefsMatch ? 'prefs-match' : ''} ${detailTorrent?.title === t.title ? 'row-selected' : ''}`}
+                      onClick={() => setDetailTorrent(t)}
+                      role="button"
+                      tabIndex={0}
+                    >
                       <span className="torrent-name">
                         {tierMeta && (
                           <span
@@ -548,7 +556,7 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
                         <span className="ratio-line">{peers}p</span>
                       </span>
                       <span className="torrent-indexer">{t.indexer}</span>
-                      <button className="download-btn" onClick={() => handleAdd(t)} disabled={downloading === t.title}>
+                      <button className="download-btn" onClick={(e) => { e.stopPropagation(); handleAdd(t) }} disabled={downloading === t.title}>
                         {downloading === t.title ? '...' : <><Download size={14} /> Get</>}
                       </button>
                     </div>
@@ -865,7 +873,21 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
           .ratio-pill { margin-left: auto; max-width: 56px; }
           .download-btn { flex: 1 1 100%; margin-top: 6px; justify-content: center; padding: 11px 16px; min-height: 44px; }
         }
+        .torrent-row { cursor: pointer; }
+        .torrent-row.row-selected {
+          outline: 1px solid var(--accent);
+          outline-offset: -1px;
+        }
       `}</style>
+
+      {detailTorrent && (
+        <TorrentDetailPanel
+          torrent={detailTorrent}
+          context={scoringContext}
+          onClose={() => setDetailTorrent(null)}
+          onDownload={(t) => { handleAdd(t); setDetailTorrent(null) }}
+        />
+      )}
     </div>
   )
 }
