@@ -92,6 +92,27 @@ def _matches_season(title: str, season: int) -> bool:
     return True
 
 
+async def search_anime_torrents(query: str, season: int | None = None,
+                                  episode: int | None = None, limit: int = 20) -> list:
+    """Anime-friendly search: plain `type=search` text query rather than
+    tvsearch. Anime indexers (Nyaa) and most release naming don't follow the
+    S##E## convention reliably — they use formats like 'Show - 05'."""
+    parts = [query.strip()]
+    if season is not None:
+        parts.append(f"S{int(season):02d}")
+    if episode is not None:
+        # "Show - 05" is the common anime format; including "E05" too for indexers that look for it.
+        parts.append(f"{int(episode):02d}")
+    formatted = " ".join(parts)
+
+    print(f"[prowlarr anime search] query={formatted!r}", flush=True)
+    params = {"query": formatted, "type": "search", "limit": limit}
+    raw = await _single_search(params)
+    formatted_results = _format(raw)
+    print(f"[prowlarr anime search] raw={len(raw)} seeded={len(formatted_results)}", flush=True)
+    return formatted_results
+
+
 async def search_tv_torrents(query: str, season: int | None = None,
                               episode: int | None = None, limit: int = 20) -> list:
     """Search Prowlarr for a TV show with strategy varying by what's specified.

@@ -5,6 +5,8 @@ import Home from './pages/Home'
 import Browse from './pages/Browse'
 import TVHome from './pages/TVHome'
 import TVBrowse from './pages/TVBrowse'
+import AnimeHome from './pages/AnimeHome'
+import AnimeBrowse from './pages/AnimeBrowse'
 import HistoryOverlay from './components/HistoryOverlay'
 import SettingsOverlay from './components/SettingsOverlay'
 import NotificationBanner from './components/NotificationBanner'
@@ -27,7 +29,8 @@ export default function App() {
   }, [mode])
 
   let page
-  if (mode === 'tv') page = view === 'browse' ? <TVBrowse /> : <TVHome />
+  if (mode === 'anime') page = view === 'browse' ? <AnimeBrowse /> : <AnimeHome />
+  else if (mode === 'tv') page = view === 'browse' ? <TVBrowse /> : <TVHome />
   else page = view === 'browse' ? <Browse /> : <Home />
 
   return (
@@ -51,6 +54,13 @@ export default function App() {
             aria-pressed={mode === 'tv'}
           >
             TV Shows
+          </button>
+          <button
+            className={`mode-tab ${mode === 'anime' ? 'active' : ''}`}
+            onClick={() => setMode('anime')}
+            aria-pressed={mode === 'anime'}
+          >
+            Anime
           </button>
         </div>
         <div className="header-actions">

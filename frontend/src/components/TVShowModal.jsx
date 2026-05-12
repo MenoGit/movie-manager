@@ -4,6 +4,14 @@ import {
   Maximize2, Minimize2, Star, Folder,
 } from 'lucide-react'
 import { getTVDetail, getTVSeason, searchTVTorrents, addTVTorrent } from '../api'
+
+// Default API map; AnimeModal passes anime-specific endpoints via `api` prop.
+const DEFAULT_API = {
+  getDetail: getTVDetail,
+  getSeason: getTVSeason,
+  searchTorrents: searchTVTorrents,
+  addTorrent: addTVTorrent,
+}
 import { hasSpanishAudio, readPrefs, matchesPrefs, prefsActive } from '../utils'
 import {
   scoreTorrent, pickBestThree, qualityTag,
@@ -43,7 +51,7 @@ const SORTS = [
   { id: 'quality', label: 'Quality' },
 ]
 
-export default function TVShowModal({ show, onClose }) {
+export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePathLabel = 'TV-Shows' }) {
   const [detail, setDetail] = useState(null)
   const [selectedSeason, setSelectedSeason] = useState(1)
   const [seasonData, setSeasonData] = useState(null)
@@ -75,7 +83,7 @@ export default function TVShowModal({ show, onClose }) {
   // Initial load: full detail + first season episode list. Pick a reasonable
   // starting season: smallest season_number with episodes (skip "Specials" season 0).
   useEffect(() => {
-    getTVDetail(show.id).then(r => {
+    api.getDetail(show.id).then(r => {
       setDetail(r.data)
       const seasons = (r.data.seasons || []).filter(s => s.season_number > 0)
       const startSeason = seasons[0]?.season_number ?? 1
@@ -86,14 +94,14 @@ export default function TVShowModal({ show, onClose }) {
   // Load season episode list whenever season changes
   useEffect(() => {
     if (!selectedSeason || !detail) return
-    getTVSeason(show.id, selectedSeason).then(r => setSeasonData(r.data)).catch(() => setSeasonData(null))
+    api.getSeason(show.id, selectedSeason).then(r => setSeasonData(r.data)).catch(() => setSeasonData(null))
   }, [selectedSeason, detail, show.id])
 
   async function fetchTorrents(season, episode) {
     setTorrentLoading(true)
     setScope({ season, episode })
     try {
-      const r = await searchTVTorrents(show.title, season, episode)
+      const r = await api.searchTorrents(show.title, season, episode)
       setTorrents(r.data)
     } catch {
       setTorrents([])
@@ -110,7 +118,7 @@ export default function TVShowModal({ show, onClose }) {
     const seasonForFolder = scope.season ?? selectedSeason ?? 1
     setDownloading(torrent.title)
     try {
-      await addTVTorrent(torrent.magnet, show.title, seasonForFolder)
+      await api.addTorrent(torrent.magnet, show.title, seasonForFolder)
       setDoneMsg(`Added to Season ${seasonForFolder}`)
       setDone(true)
       setTimeout(() => setDone(false), 4000)
@@ -195,7 +203,7 @@ export default function TVShowModal({ show, onClose }) {
     scope.season == null ? 'all results'
     : scope.episode == null ? `Season ${scope.season} only`
     : `Season ${scope.season} · Episode ${scope.episode}`
-  const savePathHint = `/TV-Shows/${show.title}/Season ${String(scope.season ?? selectedSeason).padStart(2, '0')}/`
+  const savePathHint = `/${savePathLabel}/${show.title}/Season ${String(scope.season ?? selectedSeason).padStart(2, '0')}/`
 
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>

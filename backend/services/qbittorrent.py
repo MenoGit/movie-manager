@@ -51,6 +51,22 @@ async def add_torrent(magnet: str, movie_title: str) -> dict:
         r.raise_for_status()
     return {"save_path": save_path, "title": safe_title}
 
+async def add_anime_torrent(magnet: str, show_title: str, season_number: int) -> dict:
+    """Save under TV-Shows path (Plex treats anime as TV) but with a separate
+    'anime' qBit category so the queue stays separate from regular TV downloads."""
+    safe_show = "".join(c for c in show_title if c.isalnum() or c in " ._-").strip()
+    season_folder = f"Season {int(season_number):02d}"
+    save_path = os.path.join(settings.tv_shows_path, safe_show, season_folder)
+    async with _get_client() as client:
+        r = await client.post("/api/v2/torrents/add", data={
+            "urls": _rewrite_for_host(magnet),
+            "savepath": save_path,
+            "category": "anime",
+        })
+        r.raise_for_status()
+    return {"save_path": save_path, "show": safe_show, "season": int(season_number)}
+
+
 async def add_tv_torrent(magnet: str, show_title: str, season_number: int) -> dict:
     """Add a TV-show torrent. Save path is `<TV_SHOWS_PATH>/<Show Name>/Season XX/`
     so Plex's TV agent picks it up automatically."""

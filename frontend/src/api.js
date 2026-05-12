@@ -96,6 +96,37 @@ export const searchTV = (q) => wrapTV(api.get('/tv/search', { params: { q } }))
 export const getTVDetail = (id) => wrapTV(api.get(`/tv/${id}`))
 export const getTVSeason = (id, season) => api.get(`/tv/${id}/season/${season}`)
 
+// ─── Anime ───────────────────────────────────────────────────────────────
+// Anime uses TV-shaped data (name, first_air_date) so it gets the same
+// normalizer as TV.
+export const getTrendingAnime = (page = 1) =>
+  wrapTV(api.get('/anime/trending', { params: { page } }))
+export const getPopularAnime = (page = 1) =>
+  wrapTV(api.get('/anime/popular', { params: { page } }))
+export const getTopRatedAnime = (page = 1) =>
+  wrapTV(api.get('/anime/top-rated', { params: { page } }))
+export const getAiringAnime = (page = 1) =>
+  wrapTV(api.get('/anime/airing', { params: { page } }))
+export const getAnimeMovies = (page = 1) =>
+  // Movies have title+release_date natively but wrapTV is a no-op for those
+  wrapTV(api.get('/anime/movies', { params: { page } }))
+export const getAnimeGenres = () => api.get('/anime/genres')
+export const getAnimeBySubgenre = (subgenreId, kind = 'genre', page = 1) =>
+  wrapTV(api.get(`/anime/genre/${subgenreId}`, { params: { kind, page } }))
+export const searchAnime = (q) =>
+  wrapTV(api.get('/anime/search', { params: { q } }))
+export const getAnimeDetail = (id) => wrapTV(api.get(`/anime/${id}`))
+export const getAnimeSeason = (id, season) => api.get(`/anime/${id}/season/${season}`)
+
+// Anime downloads
+export const searchAnimeTorrents = (q, season, episode) =>
+  api.get('/anime-downloads/search', { params: { q, ...(season != null && { season }), ...(episode != null && { episode }) } })
+export const addAnimeTorrent = (magnet, show_title, season_number) =>
+  api.post('/anime-downloads/add', { magnet, show_title, season_number })
+export const getAnimeQueue = () => api.get('/anime-downloads/queue')
+export const deleteAnimeTorrent = (hash) => api.delete(`/anime-downloads/${hash}`)
+export const refreshAnimePlex = () => api.post('/anime-downloads/plex-refresh')
+
 // TV downloads
 export const searchTVTorrents = (q, season, episode) =>
   api.get('/tv-downloads/search', { params: { q, ...(season != null && { season }), ...(episode != null && { episode }) } })
