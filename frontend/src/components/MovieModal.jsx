@@ -1,7 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
-import { X, Download, Search, ExternalLink, Check, AlertTriangle, Maximize2, Minimize2, Star } from 'lucide-react'
+import { X, Download, Search, Play, Check, AlertTriangle, Maximize2, Minimize2, Star } from 'lucide-react'
 import { getMovieDetail, searchTorrents, addTorrent, refreshPlex } from '../api'
 import { hasSpanishAudio } from '../utils'
+import {
+  scoreTorrent, pickBestThree, qualityTag,
+  scoreBreakdown, tierContextLabel, TIER_META,
+} from '../torrentScoring'
 
 function formatSize(bytes) {
   if (!bytes) return '?'
@@ -9,101 +13,11 @@ function formatSize(bytes) {
   return gb >= 1 ? `${gb.toFixed(2)} GB` : `${(bytes / 1024 / 1024).toFixed(0)} MB`
 }
 
-function parseRelease(title) {
-  const s = (title || '').toUpperCase()
-  const resolution =
-    /2160P|\b4K\b|\bUHD\b/.test(s) ? '4K' :
-    /1080P/.test(s) ? '1080p' :
-    /720P/.test(s) ? '720p' : 'other'
-  const source =
-    /\bHDCAM\b|\bCAM(?:RIP)?\b/.test(s) ? 'CAM' :
-    /\b(?:TELESYNC|HDTS)\b|\bTS\b/.test(s) ? 'TS' :
-    /BLU.?RAY|\bBDRIP\b|\bBRRIP\b|\bBDR\b/.test(s) ? 'BluRay' :
-    /\bWEB[-.]?DL\b|\bWEBDL\b/.test(s) ? 'WEB-DL' :
-    /\bWEB.?RIP\b/.test(s) ? 'WEBRip' : 'Unknown'
-  const audio =
-    /\bATMOS\b/.test(s) ? 'Atmos' :
-    /DDP5\.?1|DTS(?:[-.]?HD|[-.]?MA|[-.]?X)?/.test(s) ? 'DDP5.1/DTS' :
-    /AAC5\.?1|AAC\.?5\.?1|AAC ?5\.1/.test(s) ? 'AAC5.1' :
-    'Stereo'
-  const hdr =
-    /DOLBY[\s.-]?VISION|\bDV\b|\bDOVI\b/.test(s) ? 'DV' :
-    /HDR10\+|HDR10PLUS/.test(s) ? 'HDR10+' :
-    /\bHDR\b|HDR10/.test(s) ? 'HDR10' :
-    'SDR'
-  const codec =
-    /\bAV1\b/.test(s) ? 'AV1' :
-    /X265|HEVC|H[\s.]?265/.test(s) ? 'x265' :
-    /X264|H[\s.]?264/.test(s) ? 'x264' :
-    'unknown'
-  return { resolution, source, audio, hdr, codec }
-}
-
-const SCORE_TABLE = {
-  resolution: { '4K': 10, '1080p': 8, '720p': 5, 'other': 2 },
-  source:     { 'BluRay': 10, 'WEB-DL': 9, 'WEBRip': 7, 'Unknown': 4, 'TS': 0, 'CAM': 0 },
-  audio:      { 'Atmos': 10, 'DDP5.1/DTS': 8, 'AAC5.1': 6, 'Stereo': 3 },
-  hdr:        { 'DV': 10, 'HDR10+': 9, 'HDR10': 8, 'SDR': 3 },
-  codec:      { 'AV1': 9, 'x265': 8, 'x264': 5, 'unknown': 3 },
-}
-
-function scoreTorrent(t) {
-  const p = parseRelease(t.title)
-  let score =
-    (SCORE_TABLE.resolution[p.resolution] ?? 0) +
-    (SCORE_TABLE.source[p.source] ?? 0) +
-    (SCORE_TABLE.audio[p.audio] ?? 0) +
-    (SCORE_TABLE.hdr[p.hdr] ?? 0) +
-    (SCORE_TABLE.codec[p.codec] ?? 0)
-
-  const gb = (t.size || 0) / (1024 ** 3)
-  let sizeNote = null
-  if (gb > 0) {
-    if (p.resolution === '4K') {
-      if (gb > 60) { score -= 5; sizeNote = 'bloated' }
-      else if (gb < 3) { score -= 8; sizeNote = 'too small' }
-      else sizeNote = 'good size'
-    } else if (p.resolution === '1080p') {
-      if (gb > 30) { score -= 5; sizeNote = 'bloated' }
-      else if (gb < 1) { score -= 8; sizeNote = 'too small' }
-      else sizeNote = 'good size'
-    } else {
-      sizeNote = 'good size'
-    }
-  }
-
-  const seeds = t.seeders || 0
-  if (seeds > 0) {
-    // log scale capped at ~8 (≈ 100 seeds); growth diminishes past that.
-    score += Math.min(Math.log10(seeds + 1) * 4, 8)
-  }
-  const peers = t.leechers || 0
-  const ratio = peers === 0 ? (seeds > 0 ? Infinity : 0) : seeds / peers
-  if (ratio > 2) score += 2
-
-  return { score: Math.round(score * 10) / 10, parsed: p, sizeNote }
-}
-
-function qualityTag(title) {
-  const p = parseRelease(title)
-  if (p.source === 'CAM' || p.source === 'TS') return p.source
-  if (p.resolution === '4K') return '4K'
-  return p.source
-}
-
-const TAG_RANK = { '4K': 5, 'BluRay': 4, 'WEB-DL': 3, 'WEBRip': 2, 'Unknown': 1, 'TS': 0, 'CAM': 0 }
+// Scoring + tier logic lives in ../torrentScoring. We keep tagClass and
+// qualityRank locally since they're trivial display helpers.
+const TAG_RANK = { '4K': 5, 'BluRay': 4, 'WEB-DL': 3, 'WEBRip': 2, 'HDTV': 1, 'Unknown': 1, 'TS': 0, 'CAM': 0 }
 function qualityRank(title) { return TAG_RANK[qualityTag(title)] ?? 1 }
-
-function tagClass(tag) {
-  return tag.toLowerCase().replace(/[^a-z0-9]/g, '')
-}
-
-function scoreBreakdown(score) {
-  const { parsed, sizeNote } = score
-  const parts = [parsed.resolution, parsed.source, parsed.audio, parsed.hdr, parsed.codec]
-  if (sizeNote) parts.push(sizeNote)
-  return parts.join(' · ')
-}
+function tagClass(tag) { return tag.toLowerCase().replace(/[^a-z0-9]/g, '') }
 
 function ratioInfo(t) {
   const s = t.seeders || 0
@@ -135,6 +49,7 @@ export default function MovieModal({ movie, onClose }) {
   const [sortKey, setSortKey] = useState('smart')
   const [expanded, setExpanded] = useState(false)
   const [spanishOnly, setSpanishOnly] = useState(false)
+  const [trailerOpen, setTrailerOpen] = useState(false)
 
   const showLowQualityWarning = useMemo(() => {
     if (torrents.length === 0) return false
@@ -148,21 +63,25 @@ export default function MovieModal({ movie, onClose }) {
     return badCount >= 2
   }, [torrents])
 
-  const scored = useMemo(
-    () => torrents.map(t => ({ ...t, _score: scoreTorrent(t) })),
-    [torrents]
+  const scoringContext = useMemo(
+    () => ({ mode: 'movie', runtimeMin: detail?.runtime || null }),
+    [detail?.runtime]
   )
 
-  const bestPicks = useMemo(() => {
-    if (scored.length === 0) return { qualityTitle: null, valueTitle: null }
-    const SIZE_SPLIT = 12 * 1024 ** 3
-    const big = scored.filter(t => (t.size || 0) >= SIZE_SPLIT)
-    const small = scored.filter(t => (t.size || 0) > 0 && (t.size || 0) < SIZE_SPLIT)
-    const topOf = arr => arr.length === 0
-      ? null
-      : arr.reduce((a, b) => a._score.score >= b._score.score ? a : b).title
-    return { qualityTitle: topOf(big), valueTitle: topOf(small) }
-  }, [scored])
+  const scored = useMemo(
+    () => torrents.map(t => ({ ...t, _score: scoreTorrent(t, scoringContext) })),
+    [torrents, scoringContext]
+  )
+
+  const bestPicks = useMemo(() => pickBestThree(scored, scoringContext), [scored, scoringContext])
+  // Quick title lookup for row rendering
+  const pickTitleMap = useMemo(() => {
+    const m = new Map()
+    if (bestPicks.quality) m.set(bestPicks.quality.title, 'quality')
+    if (bestPicks.value)   m.set(bestPicks.value.title, 'value')
+    if (bestPicks.budget)  m.set(bestPicks.budget.title, 'budget')
+    return m
+  }, [bestPicks])
 
   const visibleTorrents = useMemo(() => {
     let arr = scored
@@ -184,14 +103,14 @@ export default function MovieModal({ movie, onClose }) {
       }
     }
     const sorted = [...arr].sort(sorter)
-    const isPick = t => t.title === bestPicks.qualityTitle || t.title === bestPicks.valueTitle
-    // Pin order: Quality first, then Value. Rest follows the active sort.
-    const qualityRow = sorted.find(t => t.title === bestPicks.qualityTitle)
-    const valueRow = sorted.find(t => t.title === bestPicks.valueTitle)
-    const pinned = [qualityRow, valueRow].filter(Boolean)
-    const rest = sorted.filter(t => !isPick(t))
+    const pinned = ['quality', 'value', 'budget']
+      .map(tier => bestPicks[tier])
+      .filter(Boolean)
+      .map(pick => sorted.find(t => t.title === pick.title))
+      .filter(Boolean)
+    const rest = sorted.filter(t => !pickTitleMap.has(t.title))
     return [...pinned, ...rest]
-  }, [scored, filterText, sortKey, bestPicks, spanishOnly])
+  }, [scored, filterText, sortKey, bestPicks, pickTitleMap, spanishOnly])
 
   useEffect(() => {
     getMovieDetail(movie.id).then(r => setDetail(r.data))
@@ -284,19 +203,32 @@ export default function MovieModal({ movie, onClose }) {
                 </div>
               )}
               <p className="modal-overview">{detail?.overview || movie.overview}</p>
-              {trailer && (
-                <a
-                  href={`https://youtube.com/watch?v=${trailer.key}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="trailer-btn"
-                >
-                  <ExternalLink size={14} /> Watch Trailer
-                </a>
+              {trailer && !trailerOpen && (
+                <button className="trailer-btn" onClick={() => setTrailerOpen(true)}>
+                  <Play size={14} fill="currentColor" /> Play Trailer
+                </button>
               )}
             </div>
           </div>
         </div>
+
+        {trailer && trailerOpen && (
+          <div className="trailer-embed">
+            <button
+              className="trailer-close"
+              onClick={() => setTrailerOpen(false)}
+              aria-label="Close trailer"
+            >
+              <X size={18} />
+            </button>
+            <iframe
+              src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1&rel=0`}
+              title="Trailer"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        )}
 
         {/* Torrent Search */}
         <div className="modal-body">
@@ -402,19 +334,20 @@ export default function MovieModal({ movie, onClose }) {
                   const { ratio, bucket, seeds, peers } = ratioInfo(t)
                   const ratioLabel = ratio === Infinity ? '∞' : ratio.toFixed(1)
                   const qtag = qualityTag(t.title)
-                  const pickLabel =
-                    t.title === bestPicks.qualityTitle ? 'Best Quality' :
-                    t.title === bestPicks.valueTitle ? 'Best Value' :
-                    null
+                  const pickTier = pickTitleMap.get(t.title) || null
+                  const tierMeta = pickTier ? TIER_META[pickTier] : null
                   return (
-                    <div key={i} className={`torrent-row ${pickLabel ? 'best-pick' : ''}`}>
+                    <div key={i} className={`torrent-row ${pickTier ? `best-pick best-pick-${pickTier}` : ''}`}>
                       <span className="torrent-name">
-                        {pickLabel && (
+                        {tierMeta && (
                           <span
-                            className="best-pick-badge"
-                            title={`${pickLabel} (score ${t._score.score}) — ${scoreBreakdown(t._score)}`}
+                            className={`best-pick-badge tier-${pickTier}`}
+                            title={`${tierMeta.label} (score ${t._score.score}) — ${scoreBreakdown(t._score)}\n(${tierContextLabel(scoringContext, t)})`}
                           >
-                            <Star size={10} fill="currentColor" /> {pickLabel}
+                            {pickTier === 'budget'
+                              ? <span style={{fontSize: 11}}>💰</span>
+                              : <Star size={10} fill="currentColor" />}
+                            {' '}{tierMeta.label}
                           </span>
                         )}
                         <span className={`quality-tag quality-${tagClass(qtag)}`}>{qtag}</span>
@@ -575,6 +508,44 @@ export default function MovieModal({ movie, onClose }) {
           transition: border-color 0.2s, color 0.2s;
         }
         .trailer-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .trailer-embed {
+          position: relative;
+          margin: 0 32px 24px;
+          border-radius: 10px;
+          overflow: hidden;
+          border: 1px solid var(--border);
+          background: #000;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+        }
+        .trailer-embed::before {
+          content: '';
+          display: block;
+          padding-top: 56.25%;
+        }
+        .trailer-embed iframe {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          border: 0;
+        }
+        .trailer-close {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          z-index: 2;
+          background: rgba(0,0,0,0.65);
+          color: #fff;
+          border-radius: 50%;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          backdrop-filter: blur(4px);
+          transition: background 0.15s;
+        }
+        .trailer-close:hover { background: rgba(0,0,0,0.9); }
         .modal-body { padding: 24px 32px 32px; }
         .section-title { font-size: 1.4rem; margin-bottom: 16px; }
         .search-row { display: flex; gap: 8px; margin-bottom: 16px; }
@@ -635,18 +606,30 @@ export default function MovieModal({ movie, onClose }) {
           transition: background 0.15s;
         }
         .torrent-row:hover { background: var(--surface2); }
-        .torrent-row.best-pick {
+        .torrent-row.best-pick { padding-left: 12px; }
+        .torrent-row.best-pick-quality {
           background: linear-gradient(90deg, rgba(232,160,48,0.10), transparent 70%);
           border-left: 2px solid var(--accent);
-          padding-left: 12px;
         }
-        .torrent-row.best-pick:hover {
+        .torrent-row.best-pick-quality:hover {
           background: linear-gradient(90deg, rgba(232,160,48,0.16), var(--surface2) 70%);
+        }
+        .torrent-row.best-pick-value {
+          background: linear-gradient(90deg, rgba(62,207,142,0.08), transparent 70%);
+          border-left: 2px solid var(--green);
+        }
+        .torrent-row.best-pick-value:hover {
+          background: linear-gradient(90deg, rgba(62,207,142,0.14), var(--surface2) 70%);
+        }
+        .torrent-row.best-pick-budget {
+          background: linear-gradient(90deg, rgba(168,85,247,0.08), transparent 70%);
+          border-left: 2px solid #a855f7;
+        }
+        .torrent-row.best-pick-budget:hover {
+          background: linear-gradient(90deg, rgba(168,85,247,0.14), var(--surface2) 70%);
         }
         .best-pick-badge {
           display: inline-flex; align-items: center; gap: 3px;
-          background: var(--accent);
-          color: #000;
           padding: 1px 6px;
           border-radius: 3px;
           font-size: 9px;
@@ -655,7 +638,11 @@ export default function MovieModal({ movie, onClose }) {
           text-transform: uppercase;
           flex-shrink: 0;
           cursor: help;
+          white-space: nowrap;
         }
+        .best-pick-badge.tier-quality { background: var(--accent); color: #000; }
+        .best-pick-badge.tier-value   { background: var(--green);  color: #000; }
+        .best-pick-badge.tier-budget  { background: #a855f7;       color: #fff; }
         .torrent-name {
           display: flex; align-items: center; gap: 8px;
           min-width: 0;
@@ -869,6 +856,8 @@ export default function MovieModal({ movie, onClose }) {
             padding-top: max(56px, calc(env(safe-area-inset-top) + 56px));
           }
           .modal-hero { border-radius: 0; }
+          .trailer-embed { margin: 0 0 16px; border-radius: 0; border-left: 0; border-right: 0; }
+          .trailer-close { top: max(8px, env(safe-area-inset-top)); }
           .modal-poster { width: 140px; min-width: 0; margin: 0 auto; }
           .modal-title { font-size: 1.5rem; }
           .modal-overview { -webkit-line-clamp: 5; }

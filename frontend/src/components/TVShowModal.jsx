@@ -1,10 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
-  X, Download, Search, ExternalLink, Check, AlertTriangle,
+  X, Download, Search, Play, Check, AlertTriangle,
   Maximize2, Minimize2, Star, Folder,
 } from 'lucide-react'
 import { getTVDetail, getTVSeason, searchTVTorrents, addTVTorrent } from '../api'
 import { hasSpanishAudio } from '../utils'
+import {
+  scoreTorrent, pickBestThree, qualityTag,
+  scoreBreakdown, tierContextLabel, TIER_META, isSeasonPack,
+} from '../torrentScoring'
 
 // ── Helpers shared with MovieModal. Duplicated here intentionally to keep
 //    Part 1 movie modal untouched; refactor candidate for a shared TorrentList. ──
@@ -15,80 +19,10 @@ function formatSize(bytes) {
   return gb >= 1 ? `${gb.toFixed(2)} GB` : `${(bytes / 1024 / 1024).toFixed(0)} MB`
 }
 
-function parseRelease(title) {
-  const s = (title || '').toUpperCase()
-  const resolution =
-    /2160P|\b4K\b|\bUHD\b/.test(s) ? '4K' :
-    /1080P/.test(s) ? '1080p' :
-    /720P/.test(s) ? '720p' : 'other'
-  const source =
-    /\bHDCAM\b|\bCAM(?:RIP)?\b/.test(s) ? 'CAM' :
-    /\b(?:TELESYNC|HDTS)\b|\bTS\b/.test(s) ? 'TS' :
-    /BLU.?RAY|\bBDRIP\b|\bBRRIP\b|\bBDR\b/.test(s) ? 'BluRay' :
-    /\bWEB[-.]?DL\b|\bWEBDL\b/.test(s) ? 'WEB-DL' :
-    /\bWEB.?RIP\b/.test(s) ? 'WEBRip' : 'Unknown'
-  const audio =
-    /\bATMOS\b/.test(s) ? 'Atmos' :
-    /DDP5\.?1|DTS(?:[-.]?HD|[-.]?MA|[-.]?X)?/.test(s) ? 'DDP5.1/DTS' :
-    /AAC5\.?1|AAC\.?5\.?1|AAC ?5\.1/.test(s) ? 'AAC5.1' : 'Stereo'
-  const hdr =
-    /DOLBY[\s.-]?VISION|\bDV\b|\bDOVI\b/.test(s) ? 'DV' :
-    /HDR10\+|HDR10PLUS/.test(s) ? 'HDR10+' :
-    /\bHDR\b|HDR10/.test(s) ? 'HDR10' : 'SDR'
-  const codec =
-    /\bAV1\b/.test(s) ? 'AV1' :
-    /X265|HEVC|H[\s.]?265/.test(s) ? 'x265' :
-    /X264|H[\s.]?264/.test(s) ? 'x264' : 'unknown'
-  return { resolution, source, audio, hdr, codec }
-}
-
-const SCORE_TABLE = {
-  resolution: { '4K': 10, '1080p': 8, '720p': 5, 'other': 2 },
-  source:     { 'BluRay': 10, 'WEB-DL': 9, 'WEBRip': 7, 'Unknown': 4, 'TS': 0, 'CAM': 0 },
-  audio:      { 'Atmos': 10, 'DDP5.1/DTS': 8, 'AAC5.1': 6, 'Stereo': 3 },
-  hdr:        { 'DV': 10, 'HDR10+': 9, 'HDR10': 8, 'SDR': 3 },
-  codec:      { 'AV1': 9, 'x265': 8, 'x264': 5, 'unknown': 3 },
-}
-
-function scoreTorrent(t) {
-  const p = parseRelease(t.title)
-  let score =
-    (SCORE_TABLE.resolution[p.resolution] ?? 0) +
-    (SCORE_TABLE.source[p.source] ?? 0) +
-    (SCORE_TABLE.audio[p.audio] ?? 0) +
-    (SCORE_TABLE.hdr[p.hdr] ?? 0) +
-    (SCORE_TABLE.codec[p.codec] ?? 0)
-  // TV uses different size thresholds — a "good 1080p season" is 8-50GB usually.
-  const gb = (t.size || 0) / (1024 ** 3)
-  let sizeNote = null
-  if (gb > 0) {
-    if (gb > 200) { score -= 5; sizeNote = 'bloated' }
-    else if (gb < 0.3) { score -= 8; sizeNote = 'too small' }
-    else sizeNote = 'good size'
-  }
-  const seeds = t.seeders || 0
-  if (seeds > 0) score += Math.min(Math.log10(seeds + 1) * 4, 8)
-  const peers = t.leechers || 0
-  const ratio = peers === 0 ? (seeds > 0 ? Infinity : 0) : seeds / peers
-  if (ratio > 2) score += 2
-  return { score: Math.round(score * 10) / 10, parsed: p, sizeNote }
-}
-
-function qualityTag(title) {
-  const p = parseRelease(title)
-  if (p.source === 'CAM' || p.source === 'TS') return p.source
-  if (p.resolution === '4K') return '4K'
-  return p.source
-}
-const TAG_RANK = { '4K': 5, 'BluRay': 4, 'WEB-DL': 3, 'WEBRip': 2, 'Unknown': 1, 'TS': 0, 'CAM': 0 }
+// Scoring + tier logic shared with MovieModal via ../torrentScoring.
+const TAG_RANK = { '4K': 5, 'BluRay': 4, 'WEB-DL': 3, 'WEBRip': 2, 'HDTV': 1, 'Unknown': 1, 'TS': 0, 'CAM': 0 }
 function qualityRank(title) { return TAG_RANK[qualityTag(title)] ?? 1 }
 function tagClass(tag) { return tag.toLowerCase().replace(/[^a-z0-9]/g, '') }
-function scoreBreakdown(score) {
-  const { parsed, sizeNote } = score
-  const parts = [parsed.resolution, parsed.source, parsed.audio, parsed.hdr, parsed.codec]
-  if (sizeNote) parts.push(sizeNote)
-  return parts.join(' · ')
-}
 
 function ratioInfo(t) {
   const s = t.seeders || 0
@@ -123,6 +57,7 @@ export default function TVShowModal({ show, onClose }) {
   const [sortKey, setSortKey] = useState('smart')
   const [spanishOnly, setSpanishOnly] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const [trailerOpen, setTrailerOpen] = useState(false)
 
   useEffect(() => {
     document.body.classList.add('modal-open')
@@ -188,21 +123,32 @@ export default function TVShowModal({ show, onClose }) {
   }
 
   // ── Derived view state (Best Picks, scoring, filter) ─────────────────────
+  const scoringContext = useMemo(() => {
+    const seasonInfo = detail?.seasons?.find(s => s.season_number === (scope.season ?? selectedSeason))
+    return {
+      mode: 'tv',
+      runtimeMin: detail?.episode_run_time?.[0] || 45,
+      episodeCount: seasonInfo?.episode_count || detail?.number_of_episodes || 10,
+      // User explicitly asked for a season (not a specific episode) → score
+      // all results as season-pack content.
+      isSeasonSearch: scope.season != null && scope.episode == null,
+    }
+  }, [detail, scope.season, scope.episode, selectedSeason])
+
   const scored = useMemo(
-    () => torrents.map(t => ({ ...t, _score: scoreTorrent(t) })),
-    [torrents]
+    () => torrents.map(t => ({ ...t, _score: scoreTorrent(t, scoringContext) })),
+    [torrents, scoringContext]
   )
 
-  const bestPicks = useMemo(() => {
-    if (scored.length === 0) return { qualityTitle: null, valueTitle: null }
-    const SIZE_SPLIT = 12 * 1024 ** 3
-    const big = scored.filter(t => (t.size || 0) >= SIZE_SPLIT)
-    const small = scored.filter(t => (t.size || 0) > 0 && (t.size || 0) < SIZE_SPLIT)
-    const topOf = arr => arr.length === 0
-      ? null
-      : arr.reduce((a, b) => a._score.score >= b._score.score ? a : b).title
-    return { qualityTitle: topOf(big), valueTitle: topOf(small) }
-  }, [scored])
+  const bestPicks = useMemo(() => pickBestThree(scored, scoringContext), [scored, scoringContext])
+
+  const pickTitleMap = useMemo(() => {
+    const m = new Map()
+    if (bestPicks.quality) m.set(bestPicks.quality.title, 'quality')
+    if (bestPicks.value)   m.set(bestPicks.value.title, 'value')
+    if (bestPicks.budget)  m.set(bestPicks.budget.title, 'budget')
+    return m
+  }, [bestPicks])
 
   const showLowQualityWarning = useMemo(() => {
     if (torrents.length === 0) return false
@@ -231,12 +177,14 @@ export default function TVShowModal({ show, onClose }) {
       }
     }
     const sorted = [...arr].sort(sorter)
-    const isPick = t => t.title === bestPicks.qualityTitle || t.title === bestPicks.valueTitle
-    const quality = sorted.find(t => t.title === bestPicks.qualityTitle)
-    const value = sorted.find(t => t.title === bestPicks.valueTitle)
-    const pinned = [quality, value].filter(Boolean)
-    return [...pinned, ...sorted.filter(t => !isPick(t))]
-  }, [scored, filterText, sortKey, bestPicks, spanishOnly])
+    const pinned = ['quality', 'value', 'budget']
+      .map(tier => bestPicks[tier])
+      .filter(Boolean)
+      .map(pick => sorted.find(t => t.title === pick.title))
+      .filter(Boolean)
+    const rest = sorted.filter(t => !pickTitleMap.has(t.title))
+    return [...pinned, ...rest]
+  }, [scored, filterText, sortKey, bestPicks, pickTitleMap, spanishOnly])
 
   const year = (show.release_date || show.first_air_date || '').split('-')[0]
   const trailer = detail?.trailer
@@ -300,14 +248,32 @@ export default function TVShowModal({ show, onClose }) {
                 </div>
               )}
               <p className="modal-overview">{detail?.overview || show.overview}</p>
-              {trailer && (
-                <a href={`https://youtube.com/watch?v=${trailer.key}`} target="_blank" rel="noreferrer" className="trailer-btn">
-                  <ExternalLink size={14} /> Watch Trailer
-                </a>
+              {trailer && !trailerOpen && (
+                <button className="trailer-btn" onClick={() => setTrailerOpen(true)}>
+                  <Play size={14} fill="currentColor" /> Play Trailer
+                </button>
               )}
             </div>
           </div>
         </div>
+
+        {trailer && trailerOpen && (
+          <div className="trailer-embed">
+            <button
+              className="trailer-close"
+              onClick={() => setTrailerOpen(false)}
+              aria-label="Close trailer"
+            >
+              <X size={18} />
+            </button>
+            <iframe
+              src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1&rel=0`}
+              title="Trailer"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        )}
 
         {/* Seasons + episodes */}
         <div className="modal-body">
@@ -437,54 +403,84 @@ export default function TVShowModal({ show, onClose }) {
                 <div className="torrent-loading">Searching indexers...</div>
               ) : visibleTorrents.length === 0 ? (
                 <div className="torrent-empty">No results found.</div>
-              ) : (
-                <div className="torrent-list">
-                  <div className="torrent-header">
-                    <span>Title</span>
-                    <span>Size</span>
-                    <span>Seeds</span>
-                    <span>Peers</span>
-                    <span title="Seeder/Peer ratio">S/P</span>
-                    <span>Source</span>
-                    <span></span>
+              ) : (() => {
+                // In season-search mode, partition into packs + episodes
+                // (packs first, then "Individual Episodes" divider, then eps).
+                // Best Picks stay pinned at absolute top regardless.
+                const pinned = []
+                const remainder = []
+                for (const t of visibleTorrents) {
+                  if (pickTitleMap.has(t.title)) pinned.push(t)
+                  else remainder.push(t)
+                }
+                const seasonSearchMode = scoringContext.isSeasonSearch
+                const packs = seasonSearchMode ? remainder.filter(t => isSeasonPack(t.title)) : []
+                const eps   = seasonSearchMode ? remainder.filter(t => !isSeasonPack(t.title)) : remainder
+                const renderRow = (t, i) => {
+                  const { ratio, bucket, seeds, peers } = ratioInfo(t)
+                  const ratioLabel = ratio === Infinity ? '∞' : ratio.toFixed(1)
+                  const qtag = qualityTag(t.title)
+                  const pickTier = pickTitleMap.get(t.title) || null
+                  const tierMeta = pickTier ? TIER_META[pickTier] : null
+                  const isPack = isSeasonPack(t.title)
+                  return (
+                    <div key={`r-${i}-${t.title}`} className={`torrent-row ${pickTier ? `best-pick best-pick-${pickTier}` : ''}`}>
+                      <span className="torrent-name">
+                        {tierMeta && (
+                          <span
+                            className={`best-pick-badge tier-${pickTier}`}
+                            title={`${tierMeta.label} (score ${t._score.score}) — ${scoreBreakdown(t._score)}\n(${tierContextLabel(scoringContext, t)})`}
+                          >
+                            {pickTier === 'budget'
+                              ? <span style={{fontSize: 11}}>💰</span>
+                              : <Star size={10} fill="currentColor" />}
+                            {' '}{tierMeta.label}
+                          </span>
+                        )}
+                        <span className={`type-tag ${isPack ? 'type-pack' : 'type-ep'}`}>
+                          {isPack ? 'Season Pack' : 'Episode'}
+                        </span>
+                        <span className={`quality-tag quality-${tagClass(qtag)}`}>{qtag}</span>
+                        {hasSpanishAudio(t.title) && (
+                          <span className="spanish-audio-tag" title="Likely includes Spanish audio">ES</span>
+                        )}
+                        <span className="torrent-name-text" title={t.title}>{t.title}</span>
+                      </span>
+                      <span className="torrent-size">{formatSize(t.size)}</span>
+                      <span className="torrent-seeds" style={{color: t.seeders > 10 ? 'var(--green)' : t.seeders > 0 ? 'var(--accent)' : 'var(--red)'}}>{t.seeders}</span>
+                      <span className="torrent-peers">{t.leechers ?? 0}</span>
+                      <span className={`ratio-pill ratio-${bucket}`} title={`${seeds} seeders / ${peers} peers (ratio ${ratioLabel}) — ${bucket}`}>
+                        <span className="ratio-line">{seeds}s</span>
+                        <span className="ratio-line">{peers}p</span>
+                      </span>
+                      <span className="torrent-indexer">{t.indexer}</span>
+                      <button className="download-btn" onClick={() => handleAdd(t)} disabled={downloading === t.title}>
+                        {downloading === t.title ? '...' : <><Download size={14} /> Get</>}
+                      </button>
+                    </div>
+                  )
+                }
+                return (
+                  <div className="torrent-list">
+                    <div className="torrent-header">
+                      <span>Title</span><span>Size</span><span>Seeds</span><span>Peers</span>
+                      <span title="Seeder/Peer ratio">S/P</span><span>Source</span><span></span>
+                    </div>
+                    {pinned.map(renderRow)}
+                    {seasonSearchMode ? (
+                      <>
+                        {packs.map((t, i) => renderRow(t, `pack-${i}`))}
+                        {eps.length > 0 && (
+                          <div className="torrent-divider">Individual Episodes ({eps.length})</div>
+                        )}
+                        {eps.map((t, i) => renderRow(t, `ep-${i}`))}
+                      </>
+                    ) : (
+                      remainder.map((t, i) => renderRow(t, `r-${i}`))
+                    )}
                   </div>
-                  {visibleTorrents.map((t, i) => {
-                    const { ratio, bucket, seeds, peers } = ratioInfo(t)
-                    const ratioLabel = ratio === Infinity ? '∞' : ratio.toFixed(1)
-                    const qtag = qualityTag(t.title)
-                    const pickLabel =
-                      t.title === bestPicks.qualityTitle ? 'Best Quality' :
-                      t.title === bestPicks.valueTitle ? 'Best Value' : null
-                    return (
-                      <div key={i} className={`torrent-row ${pickLabel ? 'best-pick' : ''}`}>
-                        <span className="torrent-name">
-                          {pickLabel && (
-                            <span className="best-pick-badge" title={`${pickLabel} (score ${t._score.score}) — ${scoreBreakdown(t._score)}`}>
-                              <Star size={10} fill="currentColor" /> {pickLabel}
-                            </span>
-                          )}
-                          <span className={`quality-tag quality-${tagClass(qtag)}`}>{qtag}</span>
-                          {hasSpanishAudio(t.title) && (
-                            <span className="spanish-audio-tag" title="Likely includes Spanish audio">ES</span>
-                          )}
-                          <span className="torrent-name-text" title={t.title}>{t.title}</span>
-                        </span>
-                        <span className="torrent-size">{formatSize(t.size)}</span>
-                        <span className="torrent-seeds" style={{color: t.seeders > 10 ? 'var(--green)' : t.seeders > 0 ? 'var(--accent)' : 'var(--red)'}}>{t.seeders}</span>
-                        <span className="torrent-peers">{t.leechers ?? 0}</span>
-                        <span className={`ratio-pill ratio-${bucket}`} title={`${seeds} seeders / ${peers} peers (ratio ${ratioLabel}) — ${bucket}`}>
-                          <span className="ratio-line">{seeds}s</span>
-                          <span className="ratio-line">{peers}p</span>
-                        </span>
-                        <span className="torrent-indexer">{t.indexer}</span>
-                        <button className="download-btn" onClick={() => handleAdd(t)} disabled={downloading === t.title}>
-                          {downloading === t.title ? '...' : <><Download size={14} /> Get</>}
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+                )
+              })()}
             </>
           )}
 
@@ -558,6 +554,26 @@ export default function TVShowModal({ show, onClose }) {
         .modal-overview { font-size: 13px; line-height: 1.6; color: rgba(240,238,234,0.75); margin-bottom: 14px; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
         .trailer-btn { display: inline-flex; align-items: center; gap: 6px; background: transparent; border: 1px solid var(--border); color: var(--text); padding: 6px 14px; border-radius: 6px; font-size: 13px; text-decoration: none; }
         .trailer-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .trailer-embed {
+          position: relative;
+          margin: 0 32px 24px;
+          border-radius: 10px;
+          overflow: hidden;
+          border: 1px solid var(--border);
+          background: #000;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+        }
+        .trailer-embed::before { content: ''; display: block; padding-top: 56.25%; }
+        .trailer-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+        .trailer-close {
+          position: absolute; top: 8px; right: 8px; z-index: 2;
+          background: rgba(0,0,0,0.65); color: #fff;
+          border-radius: 50%; width: 32px; height: 32px;
+          display: flex; align-items: center; justify-content: center;
+          backdrop-filter: blur(4px);
+          transition: background 0.15s;
+        }
+        .trailer-close:hover { background: rgba(0,0,0,0.9); }
         .modal-body { padding: 24px 32px 32px; }
         .section-title { font-size: 1.4rem; margin-bottom: 16px; }
 
@@ -628,8 +644,14 @@ export default function TVShowModal({ show, onClose }) {
         .torrent-header { padding: 10px 14px; background: var(--surface2); font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
         .torrent-row { padding: 11px 14px; border-top: 1px solid var(--border); align-items: center; font-size: 13px; }
         .torrent-row:hover { background: var(--surface2); }
-        .torrent-row.best-pick { background: linear-gradient(90deg, rgba(232,160,48,0.10), transparent 70%); border-left: 2px solid var(--accent); padding-left: 12px; }
-        .best-pick-badge { display: inline-flex; align-items: center; gap: 3px; background: var(--accent); color: #000; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0; cursor: help; }
+        .torrent-row.best-pick { padding-left: 12px; }
+        .torrent-row.best-pick-quality { background: linear-gradient(90deg, rgba(232,160,48,0.10), transparent 70%); border-left: 2px solid var(--accent); }
+        .torrent-row.best-pick-value   { background: linear-gradient(90deg, rgba(62,207,142,0.08), transparent 70%); border-left: 2px solid var(--green); }
+        .torrent-row.best-pick-budget  { background: linear-gradient(90deg, rgba(168,85,247,0.08), transparent 70%); border-left: 2px solid #a855f7; }
+        .best-pick-badge { display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0; cursor: help; white-space: nowrap; }
+        .best-pick-badge.tier-quality { background: var(--accent); color: #000; }
+        .best-pick-badge.tier-value   { background: var(--green);  color: #000; }
+        .best-pick-badge.tier-budget  { background: #a855f7;       color: #fff; }
         .torrent-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
         .torrent-name-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
         .torrent-size, .torrent-indexer { color: var(--text-muted); font-size: 12px; }
@@ -644,6 +666,31 @@ export default function TVShowModal({ show, onClose }) {
         .quality-cam, .quality-ts { background: rgba(220,80,80,0.15);  color: var(--red);  border-color: rgba(220,80,80,0.40); }
         .quality-unknown{ background: var(--surface2); color: var(--text-muted); border-color: var(--border); }
         .spanish-audio-tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; letter-spacing: 0.05em; background: rgba(168,85,247,0.18); color: #c084fc; border: 1px solid rgba(168,85,247,0.5); flex-shrink: 0; }
+        .type-tag {
+          display: inline-block;
+          padding: 1px 6px;
+          border-radius: 3px;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          flex-shrink: 0;
+          white-space: nowrap;
+        }
+        .type-pack { background: rgba(59,130,246,0.18); color: #6aa8f6; border: 1px solid rgba(59,130,246,0.5); }
+        .type-ep   { background: var(--surface);        color: var(--text-muted); border: 1px solid var(--border); }
+        .torrent-divider {
+          grid-column: 1 / -1;
+          padding: 10px 14px;
+          background: var(--surface2);
+          color: var(--text-muted);
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          border-top: 1px solid var(--border);
+          border-bottom: 1px solid var(--border);
+        }
 
         .ratio-pill { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px 4px; border-radius: 6px; font-size: 10px; font-weight: 600; line-height: 1.15; text-align: center; border: 1px solid transparent; width: 100%; max-width: 52px; box-sizing: border-box; justify-self: start; }
         .ratio-line { white-space: nowrap; }
@@ -663,6 +710,8 @@ export default function TVShowModal({ show, onClose }) {
           .modal-close { top: max(14px, env(safe-area-inset-top)); right: 14px; width: 44px; height: 44px; }
           .modal-hero-content { flex-direction: column; align-items: center; text-align: center; padding: 24px 16px; padding-top: max(56px, calc(env(safe-area-inset-top) + 56px)); }
           .modal-hero { border-radius: 0; }
+          .trailer-embed { margin: 0 0 16px; border-radius: 0; border-left: 0; border-right: 0; }
+          .trailer-close { top: max(8px, env(safe-area-inset-top)); }
           .modal-poster { width: 140px; min-width: 0; }
           .modal-title { font-size: 1.5rem; }
           .modal-body { padding: 18px 16px 28px; }
