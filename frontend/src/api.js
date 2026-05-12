@@ -144,6 +144,16 @@ export const deleteTorrent = (hash) => api.delete(`/downloads/${hash}`)
 export const refreshPlex = () => api.post('/downloads/plex-refresh')
 export const getStorage = () => api.get('/downloads/storage')
 export const getDiskUsage = () => api.get('/downloads/disk-usage')
+
+// Auto-watchlist
+export const getAutoWatchlist = () => api.get('/watchlist/auto')
+export const addToAutoWatchlist = (entry) => api.post('/watchlist/auto/add', entry)
+export const removeFromAutoWatchlist = (type, id) =>
+  api.delete(`/watchlist/auto/${type}/${id}`)
+export const patchAutoWatchlist = (type, id, patch) =>
+  api.patch(`/watchlist/auto/${type}/${id}`, patch)
+export const triggerAutoWatchlistCheck = () =>
+  api.post('/watchlist/auto/check-now')
 export const getRecentlyAdded = () => api.get('/downloads/plex/recently-added')
 export const getDownloadHistory = () => api.get('/downloads/history')
 export const clearDownloadHistory = () => api.delete('/downloads/history')

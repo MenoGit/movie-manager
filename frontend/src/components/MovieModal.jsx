@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { X, Download, Search, Play, Check, AlertTriangle, Maximize2, Minimize2, Star } from 'lucide-react'
 import { getMovieDetail, searchTorrents, addTorrent, refreshPlex } from '../api'
 import { hasSpanishAudio, readPrefs, matchesPrefs, prefsActive } from '../utils'
+import AutoDownloadButton from './AutoDownloadButton'
 import {
   scoreTorrent, pickBestThree, qualityTag,
   scoreBreakdown, tierContextLabel, TIER_META,
@@ -211,11 +212,19 @@ export default function MovieModal({ movie, onClose }) {
                 </div>
               )}
               <p className="modal-overview">{detail?.overview || movie.overview}</p>
-              {trailer && !trailerOpen && (
-                <button className="trailer-btn" onClick={() => setTrailerOpen(true)}>
-                  <Play size={14} fill="currentColor" /> Play Trailer
-                </button>
-              )}
+              <div className="hero-action-row">
+                {trailer && !trailerOpen && (
+                  <button className="trailer-btn" onClick={() => setTrailerOpen(true)}>
+                    <Play size={14} fill="currentColor" /> Play Trailer
+                  </button>
+                )}
+                <AutoDownloadButton
+                  id={movie.id}
+                  type="movie"
+                  title={movie.title}
+                  release_date={movie.release_date}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -532,6 +541,7 @@ export default function MovieModal({ movie, onClose }) {
           transition: border-color 0.2s, color 0.2s;
         }
         .trailer-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .hero-action-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
         .trailer-embed {
           position: relative;
           margin: 0 32px 24px;

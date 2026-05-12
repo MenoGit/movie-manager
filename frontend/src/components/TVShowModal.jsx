@@ -13,6 +13,7 @@ const DEFAULT_API = {
   addTorrent: addTVTorrent,
 }
 import { hasSpanishAudio, readPrefs, matchesPrefs, prefsActive } from '../utils'
+import AutoDownloadButton from './AutoDownloadButton'
 import {
   scoreTorrent, pickBestThree, qualityTag,
   scoreBreakdown, tierContextLabel, TIER_META, isSeasonPack,
@@ -274,11 +275,19 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
                 </div>
               )}
               <p className="modal-overview">{detail?.overview || show.overview}</p>
-              {trailer && !trailerOpen && (
-                <button className="trailer-btn" onClick={() => setTrailerOpen(true)}>
-                  <Play size={14} fill="currentColor" /> Play Trailer
-                </button>
-              )}
+              <div className="hero-action-row">
+                {trailer && !trailerOpen && (
+                  <button className="trailer-btn" onClick={() => setTrailerOpen(true)}>
+                    <Play size={14} fill="currentColor" /> Play Trailer
+                  </button>
+                )}
+                <AutoDownloadButton
+                  id={show.id}
+                  type={api === DEFAULT_API ? 'tv' : 'anime'}
+                  title={show.title}
+                  release_date={show.release_date || show.first_air_date}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -639,6 +648,7 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
         .modal-overview { font-size: 13px; line-height: 1.6; color: rgba(240,238,234,0.75); margin-bottom: 14px; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
         .trailer-btn { display: inline-flex; align-items: center; gap: 6px; background: transparent; border: 1px solid var(--border); color: var(--text); padding: 6px 14px; border-radius: 6px; font-size: 13px; text-decoration: none; }
         .trailer-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .hero-action-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
         .trailer-embed {
           position: relative;
           margin: 0 32px 24px;

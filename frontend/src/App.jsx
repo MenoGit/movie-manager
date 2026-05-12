@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import './index.css'
-import { Film, LayoutGrid, Tv, Clock, Settings as SettingsIcon } from 'lucide-react'
+import { Film, LayoutGrid, Tv, Clock, Settings as SettingsIcon, Bell } from 'lucide-react'
 import Home from './pages/Home'
 import Browse from './pages/Browse'
 import TVHome from './pages/TVHome'
@@ -10,6 +10,8 @@ import AnimeBrowse from './pages/AnimeBrowse'
 import HistoryOverlay from './components/HistoryOverlay'
 import SettingsOverlay from './components/SettingsOverlay'
 import NotificationBanner from './components/NotificationBanner'
+import AutoWatchlistOverlay from './components/AutoWatchlistOverlay'
+import { getAutoWatchlist } from './api'
 
 export default function App() {
   const [view, setView] = useState(() => {
@@ -20,6 +22,37 @@ export default function App() {
   })
   const [showHistory, setShowHistory] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showWatchlist, setShowWatchlist] = useState(false)
+  const [newDownloadCount, setNewDownloadCount] = useState(0)
+
+  // Poll the auto-watchlist every minute for items that finished downloading
+  // since the user last opened the overlay. Tracked in localStorage so the
+  // badge persists across reloads.
+  useEffect(() => {
+    let alive = true
+    async function poll() {
+      try {
+        const r = await getAutoWatchlist()
+        if (!alive) return
+        const lastSeen = (() => {
+          try { return localStorage.getItem('autowatch_last_seen') || '' } catch { return '' }
+        })()
+        const fresh = (r.data || []).filter(it =>
+          it.status === 'downloaded' && (it.downloaded_at || '') > lastSeen
+        )
+        setNewDownloadCount(fresh.length)
+      } catch {}
+    }
+    poll()
+    const id = setInterval(poll, 60000)
+    return () => { alive = false; clearInterval(id) }
+  }, [])
+
+  function openWatchlist() {
+    try { localStorage.setItem('autowatch_last_seen', new Date().toISOString()) } catch {}
+    setNewDownloadCount(0)
+    setShowWatchlist(true)
+  }
 
   useEffect(() => {
     try { localStorage.setItem('view', view) } catch {}
@@ -65,6 +98,19 @@ export default function App() {
         </div>
         <div className="header-actions">
           <button
+            className="icon-btn icon-btn-badged"
+            onClick={openWatchlist}
+            title="Auto-download watchlist"
+            aria-label="Auto-download watchlist"
+          >
+            <Bell size={16} />
+            {newDownloadCount > 0 && (
+              <span className="icon-btn-badge" aria-label={`${newDownloadCount} new`}>
+                {newDownloadCount > 9 ? '9+' : newDownloadCount}
+              </span>
+            )}
+          </button>
+          <button
             className="icon-btn"
             onClick={() => setShowHistory(true)}
             title="Download history"
@@ -106,6 +152,7 @@ export default function App() {
       </main>
       {showHistory && <HistoryOverlay onClose={() => setShowHistory(false)} />}
       {showSettings && <SettingsOverlay onClose={() => setShowSettings(false)} />}
+      {showWatchlist && <AutoWatchlistOverlay onClose={() => setShowWatchlist(false)} />}
 
       <style>{`
         .app-header {
@@ -159,6 +206,23 @@ export default function App() {
           transition: all 0.15s;
         }
         .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .icon-btn-badged { position: relative; }
+        .icon-btn-badge {
+          position: absolute;
+          top: -4px;
+          right: -4px;
+          min-width: 16px;
+          height: 16px;
+          padding: 0 4px;
+          border-radius: 8px;
+          background: var(--red);
+          color: #fff;
+          font-size: 10px;
+          font-weight: 700;
+          line-height: 16px;
+          text-align: center;
+          border: 2px solid var(--surface2);
+        }
         .view-toggle {
           display: flex; gap: 2px;
           padding: 3px;

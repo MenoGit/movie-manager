@@ -5,6 +5,7 @@ prowlarr-config/
 {backend/
 *:Zone.Identifier
 backend/download_history.json
+backend/watchlist_auto.json
 
 # Node
 node_modules/
