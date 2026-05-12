@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Check } from 'lucide-react'
+import { Check, Film, Sparkles } from 'lucide-react'
+import { isInTheaters, hasSpanish } from '../utils'
 
 const STREAMING_LOGOS = {
   8: 'Netflix',
@@ -31,8 +32,21 @@ export default function MovieCard({ movie, onClick }) {
             <Check size={12} /> In Library
           </div>
         )}
+        {!movie.in_library && movie.fresh_rip && (
+          <div className="fresh-rip-badge" title="Quality WEB-DL or BluRay rip recently became available">
+            <Sparkles size={11} /> New Rip
+          </div>
+        )}
+        {!movie.in_library && !movie.fresh_rip && isInTheaters(movie) && (
+          <div className="in-theaters-badge" title="Likely still in theaters — quality rips may not be available yet">
+            <Film size={11} /> In Theaters
+          </div>
+        )}
         <div className="movie-card-overlay">
           <div className="movie-card-rating">★ {movie.vote_average?.toFixed(1)}</div>
+          {hasSpanish(movie) && (
+            <span className="movie-card-spanish" title="Originally Spanish-language film">ES</span>
+          )}
         </div>
       </div>
       <div className="movie-card-info">
@@ -96,6 +110,37 @@ export default function MovieCard({ movie, onClick }) {
           align-items: center;
           gap: 4px;
         }
+        .in-theaters-badge {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          background: var(--red);
+          color: #fff;
+          font-size: 10px;
+          font-weight: 600;
+          padding: 3px 7px;
+          border-radius: 20px;
+          display: flex;
+          align-items: center;
+          gap: 3px;
+          letter-spacing: 0.02em;
+        }
+        .fresh-rip-badge {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          background: #3b82f6;
+          color: #fff;
+          font-size: 10px;
+          font-weight: 600;
+          padding: 3px 7px;
+          border-radius: 20px;
+          display: flex;
+          align-items: center;
+          gap: 3px;
+          letter-spacing: 0.02em;
+          box-shadow: 0 0 12px rgba(59,130,246,0.45);
+        }
         .movie-card-overlay {
           position: absolute;
           bottom: 0;
@@ -103,11 +148,21 @@ export default function MovieCard({ movie, onClick }) {
           right: 0;
           background: linear-gradient(transparent, rgba(0,0,0,0.8));
           padding: 20px 10px 10px;
+          display: flex; align-items: center; justify-content: space-between; gap: 6px;
         }
         .movie-card-rating {
           font-size: 13px;
           color: var(--accent);
           font-weight: 600;
+        }
+        .movie-card-spanish {
+          background: #a855f7;
+          color: #fff;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          padding: 2px 5px;
+          border-radius: 3px;
         }
         .movie-card-info {
           padding: 10px 12px 12px;
@@ -125,6 +180,13 @@ export default function MovieCard({ movie, onClick }) {
         .movie-card-year {
           font-size: 12px;
           color: var(--text-muted);
+        }
+        @media (max-width: 480px) {
+          .movie-card-info { padding: 8px 10px 10px; }
+          .movie-card-title { font-size: 12px; }
+          .movie-card-year { font-size: 11px; }
+          .movie-card-rating { font-size: 12px; }
+          .in-library-badge { font-size: 10px; padding: 2px 6px; }
         }
       `}</style>
     </div>

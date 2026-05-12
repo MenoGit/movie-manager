@@ -179,6 +179,25 @@ export default function DownloadQueue() {
         .queue-stats {
           display: flex; gap: 16px;
           font-size: 11px; color: var(--text-muted);
+          flex-wrap: wrap;
+        }
+        @media (max-width: 768px) {
+          .queue-panel { padding: 14px; }
+          .queue-header { flex-wrap: wrap; gap: 10px; }
+          .queue-actions { flex-wrap: wrap; }
+        }
+        @media (max-width: 480px) {
+          .queue-item-top {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .queue-name {
+            width: 100%;
+            font-size: 12px;
+          }
+          .queue-right { width: 100%; justify-content: space-between; }
+          .queue-stats { gap: 10px; font-size: 10px; }
+          .storage-info, .plex-btn { font-size: 12px; }
         }
       `}</style>
     </div>
