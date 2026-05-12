@@ -7,6 +7,7 @@ import TVHome from './pages/TVHome'
 import TVBrowse from './pages/TVBrowse'
 import HistoryOverlay from './components/HistoryOverlay'
 import SettingsOverlay from './components/SettingsOverlay'
+import NotificationBanner from './components/NotificationBanner'
 
 export default function App() {
   const [view, setView] = useState(() => {
@@ -89,6 +90,7 @@ export default function App() {
           </div>
         </div>
       </header>
+      <NotificationBanner />
       <main>
         {page}
       </main>

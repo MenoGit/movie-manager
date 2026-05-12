@@ -29,7 +29,7 @@ export default function DownloadQueue() {
   const [queue, setQueue] = useState([])
   const [storage, setStorage] = useState(null)
   const [plexMsg, setPlexMsg] = useState('')
-  useCompletionNotifications(queue, 'Movie download complete')
+  useCompletionNotifications(queue)
 
   useEffect(() => {
     fetchAll()

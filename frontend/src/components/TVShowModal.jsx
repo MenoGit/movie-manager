@@ -108,22 +108,6 @@ export default function TVShowModal({ show, onClose }) {
   async function handleAdd(torrent) {
     if (!torrent.magnet) return alert('No magnet link available.')
     const seasonForFolder = scope.season ?? selectedSeason ?? 1
-
-    // Duplicate-protection: warn before re-downloading content the user has.
-    const progress = detail?.plex_progress
-    let warning = null
-    if (scope.episode != null) {
-      const have = detail?.plex_episodes?.[String(seasonForFolder)] || detail?.plex_episodes?.[seasonForFolder] || []
-      if (have.includes(scope.episode)) {
-        warning = `${show.title} S${seasonForFolder}E${scope.episode} is already in your Plex library. Download anyway?`
-      }
-    } else if (progress?.complete) {
-      warning = `"${show.title}" is fully in your Plex library. Download anyway?`
-    } else if (progress?.seasons_complete?.includes(seasonForFolder)) {
-      warning = `Season ${seasonForFolder} of "${show.title}" is already complete in Plex. Download anyway?`
-    }
-    if (warning && !window.confirm(warning)) return
-
     setDownloading(torrent.title)
     try {
       await addTVTorrent(torrent.magnet, show.title, seasonForFolder)
@@ -192,14 +176,17 @@ export default function TVShowModal({ show, onClose }) {
       }
     }
     const sorted = [...arr].sort(sorter)
-    const pinned = ['quality', 'value', 'budget']
+    const tierOrder = prefs.preferredTier && prefs.preferredTier !== 'any'
+      ? [prefs.preferredTier, ...['quality', 'value', 'budget'].filter(x => x !== prefs.preferredTier)]
+      : ['quality', 'value', 'budget']
+    const pinned = tierOrder
       .map(tier => bestPicks[tier])
       .filter(Boolean)
       .map(pick => sorted.find(t => t.title === pick.title))
       .filter(Boolean)
     const rest = sorted.filter(t => !pickTitleMap.has(t.title))
     return [...pinned, ...rest]
-  }, [scored, filterText, sortKey, bestPicks, pickTitleMap, spanishOnly])
+  }, [scored, filterText, sortKey, bestPicks, pickTitleMap, spanishOnly, prefs.preferredTier])
 
   const year = (show.release_date || show.first_air_date || '').split('-')[0]
   const trailer = detail?.trailer
@@ -347,9 +334,11 @@ export default function TVShowModal({ show, onClose }) {
                         {ep.overview && <p className="episode-overview">{ep.overview}</p>}
                       </div>
                       <button
-                        className="episode-download"
+                        className={`episode-download ${ep.in_library ? 'in-library' : ''}`}
                         onClick={() => handleDownloadEpisode(selectedSeason, ep.episode_number)}
-                        title={`Search torrents for S${selectedSeason}E${ep.episode_number}`}
+                        title={ep.in_library
+                          ? 'Already in library — click to search torrents anyway'
+                          : `Search torrents for S${selectedSeason}E${ep.episode_number}`}
                       >
                         <Download size={13} />
                       </button>
@@ -385,6 +374,38 @@ export default function TVShowModal({ show, onClose }) {
                   <Check size={16} /> {doneMsg} — Plex TV library will refresh when download finishes
                 </div>
               )}
+
+              {(() => {
+                const sn = scope.season ?? selectedSeason
+                const pp = detail?.plex_progress
+                const epPlex = scope.episode != null
+                  && (detail?.plex_episodes?.[String(sn)] || detail?.plex_episodes?.[sn] || []).includes(scope.episode)
+                if (epPlex) {
+                  return (
+                    <div className="dupe-warning">
+                      <AlertTriangle size={16} className="dupe-warning-icon" />
+                      <span>S{sn}E{scope.episode} is already in your Plex library. Downloading will use additional storage.</span>
+                    </div>
+                  )
+                }
+                if (pp?.complete) {
+                  return (
+                    <div className="dupe-warning">
+                      <AlertTriangle size={16} className="dupe-warning-icon" />
+                      <span>The full series is already in your Plex library.</span>
+                    </div>
+                  )
+                }
+                if (pp?.seasons_complete?.includes(sn)) {
+                  return (
+                    <div className="dupe-warning">
+                      <AlertTriangle size={16} className="dupe-warning-icon" />
+                      <span>All episodes from Season {sn} are already in your Plex library.</span>
+                    </div>
+                  )
+                }
+                return null
+              })()}
 
               {showLowQualityWarning && (
                 <div className="quality-warning">
@@ -457,6 +478,11 @@ export default function TVShowModal({ show, onClose }) {
                           {isPack ? 'Season Pack' : 'Episode'}
                         </span>
                         <span className={`quality-tag quality-${tagClass(qtag)}`}>{qtag}</span>
+                        {prefsMatch && (
+                          <span className="preset-match-tag" title="Matches your saved quality preset">
+                            ✓ Preset
+                          </span>
+                        )}
                         {hasSpanishAudio(t.title) && (
                           <span className="spanish-audio-tag" title="Likely includes Spanish audio">ES</span>
                         )}
@@ -627,6 +653,19 @@ export default function TVShowModal({ show, onClose }) {
         .episode-overview { font-size: 12px; color: var(--text-muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0; }
         .episode-download { background: transparent; border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
         .episode-download:hover { border-color: var(--accent); color: var(--accent); }
+        .episode-download.in-library { opacity: 0.35; }
+        .episode-download.in-library:hover { opacity: 0.7; }
+        .dupe-warning {
+          display: flex; align-items: flex-start; gap: 8px;
+          background: rgba(255, 160, 60, 0.10);
+          border: 1px solid #ffa03c;
+          color: #ffb872;
+          padding: 10px 14px;
+          border-radius: var(--radius);
+          font-size: 13px; line-height: 1.5;
+          margin-bottom: 14px;
+        }
+        .dupe-warning-icon { flex-shrink: 0; margin-top: 1px; color: #ffa03c; }
 
         .search-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; flex-wrap: wrap; }
         .torrent-filter { flex: 1; min-width: 200px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: var(--radius); font-size: 13px; outline: none; }
@@ -684,6 +723,7 @@ export default function TVShowModal({ show, onClose }) {
         .quality-cam, .quality-ts { background: rgba(220,80,80,0.15);  color: var(--red);  border-color: rgba(220,80,80,0.40); }
         .quality-unknown{ background: var(--surface2); color: var(--text-muted); border-color: var(--border); }
         .spanish-audio-tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; letter-spacing: 0.05em; background: rgba(168,85,247,0.18); color: #c084fc; border: 1px solid rgba(168,85,247,0.5); flex-shrink: 0; }
+        .preset-match-tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; background: rgba(168,85,247,0.20); color: #c084fc; border: 1px solid rgba(168,85,247,0.6); flex-shrink: 0; white-space: nowrap; }
         .type-tag {
           display: inline-block;
           padding: 1px 6px;

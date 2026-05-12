@@ -107,14 +107,18 @@ export default function MovieModal({ movie, onClose }) {
       }
     }
     const sorted = [...arr].sort(sorter)
-    const pinned = ['quality', 'value', 'budget']
+    // If user has a preferred tier, pin it FIRST then the rest in default order
+    const tierOrder = prefs.preferredTier && prefs.preferredTier !== 'any'
+      ? [prefs.preferredTier, ...['quality', 'value', 'budget'].filter(x => x !== prefs.preferredTier)]
+      : ['quality', 'value', 'budget']
+    const pinned = tierOrder
       .map(tier => bestPicks[tier])
       .filter(Boolean)
       .map(pick => sorted.find(t => t.title === pick.title))
       .filter(Boolean)
     const rest = sorted.filter(t => !pickTitleMap.has(t.title))
     return [...pinned, ...rest]
-  }, [scored, filterText, sortKey, bestPicks, pickTitleMap, spanishOnly])
+  }, [scored, filterText, sortKey, bestPicks, pickTitleMap, spanishOnly, prefs.preferredTier])
 
   useEffect(() => {
     getMovieDetail(movie.id).then(r => setDetail(r.data))
@@ -145,12 +149,6 @@ export default function MovieModal({ movie, onClose }) {
 
   async function handleDownload(torrent) {
     if (!torrent.magnet) return alert('No magnet link available for this torrent.')
-    if (movie.in_library) {
-      const ok = window.confirm(
-        `"${movie.title}" is already in your Plex library. Download anyway?`
-      )
-      if (!ok) return
-    }
     setDownloading(torrent.title)
     try {
       await addTorrent(torrent.magnet, movie.title)
@@ -269,6 +267,16 @@ export default function MovieModal({ movie, onClose }) {
             </div>
           )}
 
+          {movie.in_library && (
+            <div className="dupe-warning">
+              <AlertTriangle size={16} className="dupe-warning-icon" />
+              <span>
+                This movie is already in your Plex library. Downloading again will use
+                additional storage.
+              </span>
+            </div>
+          )}
+
           {detail?.theatrical_only && (
             <div className="theatrical-warning">
               <AlertTriangle size={16} className="theatrical-warning-icon" />
@@ -362,6 +370,11 @@ export default function MovieModal({ movie, onClose }) {
                           </span>
                         )}
                         <span className={`quality-tag quality-${tagClass(qtag)}`}>{qtag}</span>
+                        {prefsMatch && (
+                          <span className="preset-match-tag" title="Matches your saved quality preset">
+                            ✓ Preset
+                          </span>
+                        )}
                         {hasSpanishAudio(t.title) && (
                           <span className="spanish-audio-tag" title="Likely includes Spanish audio">ES</span>
                         )}
@@ -717,6 +730,20 @@ export default function MovieModal({ movie, onClose }) {
           border: 1px solid rgba(168, 85, 247, 0.5);
           flex-shrink: 0;
         }
+        .preset-match-tag {
+          display: inline-block;
+          padding: 1px 6px;
+          border-radius: 3px;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          background: rgba(168, 85, 247, 0.20);
+          color: #c084fc;
+          border: 1px solid rgba(168, 85, 247, 0.6);
+          flex-shrink: 0;
+          white-space: nowrap;
+        }
         .spanish-btn.active {
           background: #a855f7 !important;
           border-color: #a855f7 !important;
@@ -744,6 +771,17 @@ export default function MovieModal({ movie, onClose }) {
           margin-bottom: 14px;
         }
         .theatrical-warning-icon { flex-shrink: 0; margin-top: 1px; color: #ff823c; }
+        .dupe-warning {
+          display: flex; align-items: flex-start; gap: 8px;
+          background: rgba(255, 160, 60, 0.10);
+          border: 1px solid #ffa03c;
+          color: #ffb872;
+          padding: 10px 14px;
+          border-radius: var(--radius);
+          font-size: 13px; line-height: 1.5;
+          margin-bottom: 14px;
+        }
+        .dupe-warning-icon { flex-shrink: 0; margin-top: 1px; color: #ffa03c; }
         .torrent-size, .torrent-indexer { color: var(--text-muted); font-size: 12px; }
         .torrent-seeds { font-weight: 600; font-size: 13px; }
         .torrent-peers { font-size: 13px; color: var(--text-muted); }

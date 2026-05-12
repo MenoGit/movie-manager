@@ -26,7 +26,7 @@ const STATE_LABELS = {
 export default function TVDownloadQueue() {
   const [queue, setQueue] = useState([])
   const [plexMsg, setPlexMsg] = useState('')
-  useCompletionNotifications(queue, 'TV download complete')
+  useCompletionNotifications(queue)
 
   useEffect(() => {
     fetchAll()
