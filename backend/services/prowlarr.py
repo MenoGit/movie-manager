@@ -6,6 +6,25 @@ from config import settings
 BASE = settings.prowlarr_url
 HEADERS = {"X-Api-Key": settings.prowlarr_api_key}
 
+def _sort_by_year_match(results: list, year: int | None) -> list:
+    """Re-order so torrents whose title contains the year (word-boundary
+    match) come first. Within each group, the existing seeder ordering
+    is preserved. Year is the release/air year passed in by the caller.
+
+    Doesn't drop non-matching results — they may still be valid releases
+    that just don't include the year in the title."""
+    if not year:
+        return results
+    pattern = re.compile(rf"\b{int(year)}\b")
+    matching, other = [], []
+    for r in results:
+        if pattern.search(r.get("title") or ""):
+            matching.append(r)
+        else:
+            other.append(r)
+    return matching + other
+
+
 def _format(results: list) -> list:
     results = [t for t in results if t.get("seeders", 0) > 0]
     results.sort(key=lambda x: x.get("seeders", 0), reverse=True)
@@ -24,8 +43,9 @@ def _format(results: list) -> list:
     ]
 
 
-async def search_torrents(query: str, limit: int = 20) -> list:
-    """Search all configured indexers in Prowlarr for a movie."""
+async def search_torrents(query: str, limit: int = 20, year: int | None = None) -> list:
+    """Search all configured indexers in Prowlarr for a movie. When `year` is
+    provided, results whose title contains that year are sorted to the top."""
     async with httpx.AsyncClient() as client:
         r = await client.get(
             f"{BASE}/api/v1/search",
@@ -34,7 +54,8 @@ async def search_torrents(query: str, limit: int = 20) -> list:
             timeout=30.0,
         )
         r.raise_for_status()
-        return _format(r.json())
+        formatted = _format(r.json())
+    return _sort_by_year_match(formatted, year)
 
 
 def _matches_episode(title: str, season: int, episode: int) -> bool:
@@ -93,34 +114,39 @@ def _matches_season(title: str, season: int) -> bool:
 
 
 async def search_anime_torrents(query: str, season: int | None = None,
-                                  episode: int | None = None, limit: int = 20) -> list:
+                                  episode: int | None = None, limit: int = 20,
+                                  year: int | None = None) -> list:
     """Anime-friendly search: plain `type=search` text query rather than
     tvsearch. Anime indexers (Nyaa) and most release naming don't follow the
-    S##E## convention reliably — they use formats like 'Show - 05'."""
+    S##E## convention reliably — they use formats like 'Show - 05'.
+    Year post-filter prioritises titles that contain the show's first-air year."""
     parts = [query.strip()]
     if season is not None:
         parts.append(f"S{int(season):02d}")
     if episode is not None:
-        # "Show - 05" is the common anime format; including "E05" too for indexers that look for it.
         parts.append(f"{int(episode):02d}")
     formatted = " ".join(parts)
 
-    print(f"[prowlarr anime search] query={formatted!r}", flush=True)
+    print(f"[prowlarr anime search] query={formatted!r} year={year}", flush=True)
     params = {"query": formatted, "type": "search", "limit": limit}
     raw = await _single_search(params)
     formatted_results = _format(raw)
     print(f"[prowlarr anime search] raw={len(raw)} seeded={len(formatted_results)}", flush=True)
-    return formatted_results
+    return _sort_by_year_match(formatted_results, year)
 
 
 async def search_tv_torrents(query: str, season: int | None = None,
-                              episode: int | None = None, limit: int = 20) -> list:
+                              episode: int | None = None, limit: int = 20,
+                              year: int | None = None) -> list:
     """Search Prowlarr for a TV show with strategy varying by what's specified.
 
     - Episode (season + episode): tvsearch + post-filter on title S/E pattern.
     - Season (season only): tvsearch + 3 text fallbacks in parallel, dedupe
       by info_hash, filter to results matching the requested season.
-    - General (neither): plain tvsearch."""
+    - General (neither): plain tvsearch.
+
+    When `year` is provided, results whose title contains that year are
+    sorted ahead of the rest (preserves seeder ordering within each group)."""
 
     # ─── Episode-specific search ──────────────────────────────────────
     if episode is not None and season is not None:
@@ -132,7 +158,7 @@ async def search_tv_torrents(query: str, season: int | None = None,
         print(f"[prowlarr tv search] raw={len(raw)} seeded={len(formatted)}", flush=True)
         narrowed = [t for t in formatted if _matches_episode(t["title"], season, episode)]
         print(f"[prowlarr tv search] episode-narrowed: {len(narrowed)}", flush=True)
-        return narrowed if narrowed else formatted
+        return _sort_by_year_match(narrowed if narrowed else formatted, year)
 
     # ─── Season-pack search: multi-query strategy ─────────────────────
     if season is not None:
@@ -160,10 +186,10 @@ async def search_tv_torrents(query: str, season: int | None = None,
         # Filter to results that actually pertain to this season
         relevant = [r for r in merged if _matches_season(r.get("title", ""), season)]
         print(f"[prowlarr tv search] season-relevant: {len(relevant)} (dropped {len(merged) - len(relevant)} other-season)", flush=True)
-        return _format(relevant)
+        return _sort_by_year_match(_format(relevant), year)
 
     # ─── General (no season/episode) ───────────────────────────────────
     params = {"query": query, "type": "tvsearch", "limit": limit}
-    print(f"[prowlarr tv search] GENERAL query={query!r}", flush=True)
+    print(f"[prowlarr tv search] GENERAL query={query!r} year={year}", flush=True)
     raw = await _single_search(params)
-    return _format(raw)
+    return _sort_by_year_match(_format(raw), year)

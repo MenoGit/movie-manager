@@ -68,7 +68,13 @@ async def _check_movie(item: dict) -> dict | None:
     """Search Prowlarr for the movie, return best torrent in preferred tier
     that satisfies min_seeds AND isn't CAM/TS, or None if nothing eligible."""
     title = item.get("title", "")
-    results = await prowlarr.search_torrents(title)
+    year = None
+    if item.get("release_date"):
+        try:
+            year = int(item["release_date"][:4])
+        except (ValueError, TypeError):
+            pass
+    results = await prowlarr.search_torrents(title, year=year)
     if not results:
         return None
     ctx = {"mode": "movie"}
@@ -112,7 +118,14 @@ async def _check_tv(item: dict) -> dict | None:
     if target_season is None:
         return None  # all seasons complete
 
-    results = await prowlarr.search_tv_torrents(title, season=target_season)
+    year = None
+    fad = detail.get("first_air_date")
+    if fad:
+        try:
+            year = int(fad[:4])
+        except (ValueError, TypeError):
+            pass
+    results = await prowlarr.search_tv_torrents(title, season=target_season, year=year)
     if not results:
         return None
 

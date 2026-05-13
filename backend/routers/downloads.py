@@ -9,9 +9,10 @@ class AddTorrentRequest(BaseModel):
     movie_title: str
 
 @router.get("/search")
-async def search_torrents(q: str):
-    """Search Prowlarr for torrents matching query."""
-    return await prowlarr.search_torrents(q)
+async def search_torrents(q: str, year: int | None = None):
+    """Search Prowlarr for movie torrents. Optional `year` prioritises
+    titles containing that year (release year) in the result list."""
+    return await prowlarr.search_torrents(q, year=year)
 
 @router.post("/add")
 async def add_torrent(req: AddTorrentRequest):

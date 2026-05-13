@@ -13,11 +13,12 @@ class AddAnimeTorrentRequest(BaseModel):
 
 
 @router.get("/search")
-async def search_anime_torrents(q: str, season: Optional[int] = None, episode: Optional[int] = None):
+async def search_anime_torrents(q: str, season: Optional[int] = None,
+                                  episode: Optional[int] = None, year: Optional[int] = None):
     """Anime search uses plain text Prowlarr queries — Nyaa-style release
     naming rarely follows S##E## patterns, so structured tvsearch isn't a
-    good fit."""
-    return await prowlarr.search_anime_torrents(q, season=season, episode=episode)
+    good fit. `year` post-sorts matching releases to the top."""
+    return await prowlarr.search_anime_torrents(q, season=season, episode=episode, year=year)
 
 
 @router.post("/add")

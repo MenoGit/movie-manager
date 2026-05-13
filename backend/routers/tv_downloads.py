@@ -13,9 +13,11 @@ class AddTVTorrentRequest(BaseModel):
 
 
 @router.get("/search")
-async def search_tv_torrents(q: str, season: Optional[int] = None, episode: Optional[int] = None):
-    """Search Prowlarr for TV torrents. Optionally narrow to season/episode."""
-    return await prowlarr.search_tv_torrents(q, season=season, episode=episode)
+async def search_tv_torrents(q: str, season: Optional[int] = None,
+                              episode: Optional[int] = None, year: Optional[int] = None):
+    """Search Prowlarr for TV torrents. Optionally narrow to season/episode.
+    `year` (the show's first-air year) prioritises matching titles."""
+    return await prowlarr.search_tv_torrents(q, season=season, episode=episode, year=year)
 
 
 @router.post("/add")

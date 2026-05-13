@@ -119,8 +119,13 @@ export const getAnimeDetail = (id) => wrapTV(api.get(`/anime/${id}`))
 export const getAnimeSeason = (id, season) => api.get(`/anime/${id}/season/${season}`)
 
 // Anime downloads
-export const searchAnimeTorrents = (q, season, episode) =>
-  api.get('/anime-downloads/search', { params: { q, ...(season != null && { season }), ...(episode != null && { episode }) } })
+export const searchAnimeTorrents = (q, season, episode, year) =>
+  api.get('/anime-downloads/search', { params: {
+    q,
+    ...(season != null && { season }),
+    ...(episode != null && { episode }),
+    ...(year && { year }),
+  }})
 export const addAnimeTorrent = (magnet, show_title, season_number) =>
   api.post('/anime-downloads/add', { magnet, show_title, season_number })
 export const getAnimeQueue = () => api.get('/anime-downloads/queue')
@@ -128,8 +133,13 @@ export const deleteAnimeTorrent = (hash) => api.delete(`/anime-downloads/${hash}
 export const refreshAnimePlex = () => api.post('/anime-downloads/plex-refresh')
 
 // TV downloads
-export const searchTVTorrents = (q, season, episode) =>
-  api.get('/tv-downloads/search', { params: { q, ...(season != null && { season }), ...(episode != null && { episode }) } })
+export const searchTVTorrents = (q, season, episode, year) =>
+  api.get('/tv-downloads/search', { params: {
+    q,
+    ...(season != null && { season }),
+    ...(episode != null && { episode }),
+    ...(year && { year }),
+  }})
 export const addTVTorrent = (magnet, show_title, season_number) =>
   api.post('/tv-downloads/add', { magnet, show_title, season_number })
 export const getTVQueue = () => api.get('/tv-downloads/queue')
@@ -137,7 +147,8 @@ export const deleteTVTorrent = (hash) => api.delete(`/tv-downloads/${hash}`)
 export const refreshTVPlex = () => api.post('/tv-downloads/plex-refresh')
 
 // Downloads
-export const searchTorrents = (q) => api.get('/downloads/search', { params: { q } })
+export const searchTorrents = (q, year) =>
+  api.get('/downloads/search', { params: { q, ...(year && { year }) } })
 export const addTorrent = (magnet, movie_title) => api.post('/downloads/add', { magnet, movie_title })
 export const getQueue = () => api.get('/downloads/queue')
 export const deleteTorrent = (hash) => api.delete(`/downloads/${hash}`)

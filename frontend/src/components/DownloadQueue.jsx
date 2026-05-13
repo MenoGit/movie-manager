@@ -16,6 +16,20 @@ function formatSpeed(bps) {
   return kbps >= 1024 ? `${(kbps / 1024).toFixed(1)} MB/s` : `${kbps.toFixed(0)} KB/s`
 }
 
+function formatEta(seconds, speed) {
+  if (!speed || speed <= 0) return 'stalled'
+  if (!seconds || seconds <= 0 || seconds >= 8640000) return '∞'
+  if (seconds < 60) return `${Math.round(seconds)}s`
+  if (seconds < 3600) {
+    const m = Math.floor(seconds / 60)
+    const s = Math.round(seconds % 60)
+    return s > 0 && m < 5 ? `${m}m ${s}s` : `${m}m`
+  }
+  const h = Math.floor(seconds / 3600)
+  const m = Math.round((seconds % 3600) / 60)
+  return m > 0 ? `${h}h ${m}m` : `${h}h`
+}
+
 const STATE_LABELS = {
   downloading: 'Downloading',
   uploading: 'Seeding',
@@ -101,6 +115,9 @@ export default function DownloadQueue() {
                 <span>{formatSize(t.downloaded)} / {formatSize(t.size)}</span>
                 <span>{formatSpeed(t.speed)}</span>
                 <span>{t.seeds} seeds</span>
+                <span className={`queue-eta ${(!t.speed || t.speed <= 0) ? 'stalled' : ''}`}>
+                  ETA {formatEta(t.eta, t.speed)}
+                </span>
               </div>
             </div>
           ))}
@@ -181,6 +198,8 @@ export default function DownloadQueue() {
           font-size: 11px; color: var(--text-muted);
           flex-wrap: wrap;
         }
+        .queue-eta { color: var(--accent); font-weight: 500; }
+        .queue-eta.stalled { color: var(--text-muted); font-style: italic; }
         @media (max-width: 768px) {
           .queue-panel { padding: 14px; }
           .queue-header { flex-wrap: wrap; gap: 10px; }

@@ -142,7 +142,10 @@ export default function MovieModal({ movie, onClose }) {
   async function handleSearch() {
     setLoading(true)
     try {
-      const r = await searchTorrents(searchQuery)
+      // Pass the release year so Prowlarr results matching it sort to the top
+      // (filters out e.g. "Wolf of Wall Street" when searching for WALL-E).
+      const year = (movie.release_date || '').slice(0, 4) || undefined
+      const r = await searchTorrents(searchQuery, year)
       setTorrents(r.data)
     } catch (e) {
       setTorrents([])

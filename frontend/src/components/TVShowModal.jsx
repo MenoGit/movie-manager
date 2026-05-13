@@ -115,7 +115,8 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
     setTorrentLoading(true)
     setScope({ season, episode })
     try {
-      const r = await api.searchTorrents(show.title, season, episode)
+      const yearStr = (show.release_date || show.first_air_date || detail?.first_air_date || '').slice(0, 4)
+      const r = await api.searchTorrents(show.title, season, episode, yearStr || undefined)
       setTorrents(r.data)
     } catch {
       setTorrents([])
