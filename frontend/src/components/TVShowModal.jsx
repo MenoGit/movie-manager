@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
   X, Download, Search, Play, Check, AlertTriangle,
-  Maximize2, Minimize2, Star, Folder,
+  Maximize2, Minimize2, Folder,
 } from 'lucide-react'
 import { getTVDetail, getTVSeason, searchTVTorrents, addTVTorrent } from '../api'
 
@@ -12,13 +12,10 @@ const DEFAULT_API = {
   searchTorrents: searchTVTorrents,
   addTorrent: addTVTorrent,
 }
-import { hasSpanishAudio, matchesPrefs } from '../utils'
 import AutoDownloadButton from './AutoDownloadButton'
 import TorrentDetailPanel from './TorrentDetailPanel'
-import {
-  qualityTag, scoreBreakdown, tierContextLabel, TIER_META, isSeasonPack,
-} from '../torrentScoring'
-import { formatSize, tagClass, ratioInfo, SORTS } from '../torrentDisplay'
+import { TorrentControls, TorrentList } from './TorrentList'
+import { isSeasonPack } from '../torrentScoring'
 import useTorrentView from '../useTorrentView'
 
 export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePathLabel = 'TV-Shows' }) {
@@ -403,26 +400,10 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
                 </div>
               )}
 
-              <div className="torrent-controls">
-                <div className="sort-group">
-                  <span className="sort-label">Sort:</span>
-                  {SORTS.map(s => (
-                    <button key={s.id} className={`sort-btn ${sortKey === s.id ? 'active' : ''}`} onClick={() => setSortKey(s.id)}>{s.label}</button>
-                  ))}
-                  <button
-                    className={`sort-btn spanish-btn ${spanishOnly ? 'active' : ''}`}
-                    onClick={() => setSpanishOnly(v => !v)}
-                    title="Show only torrents with Spanish audio indicators"
-                  >
-                    Spanish
-                  </button>
-                </div>
-                <div className="ratio-legend">
-                  <span className="legend-item"><span className="dot dot-fast" />fast</span>
-                  <span className="legend-item"><span className="dot dot-decent" />decent</span>
-                  <span className="legend-item"><span className="dot dot-slow" />slow</span>
-                </div>
-              </div>
+              <TorrentControls
+                sortKey={sortKey} setSortKey={setSortKey}
+                spanishOnly={spanishOnly} setSpanishOnly={setSpanishOnly}
+              />
 
               {torrentLoading ? (
                 <div className="torrent-loading">Searching indexers...</div>
@@ -432,90 +413,44 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
                 // In season-search mode, partition into packs + episodes
                 // (packs first, then "Individual Episodes" divider, then eps).
                 // Best Picks stay pinned at absolute top regardless.
-                const pinned = []
-                const remainder = []
-                for (const t of visibleTorrents) {
-                  if (pickTitleMap.has(t.title)) pinned.push(t)
-                  else remainder.push(t)
-                }
                 const seasonSearchMode = scoringContext.isSeasonSearch
-                const packs = seasonSearchMode ? remainder.filter(t => isSeasonPack(t.title)) : []
-                const eps   = seasonSearchMode ? remainder.filter(t => !isSeasonPack(t.title)) : remainder
-                const renderRow = (t, i) => {
-                  const { ratio, bucket, seeds, peers } = ratioInfo(t)
-                  const ratioLabel = ratio === Infinity ? '∞' : ratio.toFixed(1)
-                  const qtag = qualityTag(t.title)
-                  const pickTier = pickTitleMap.get(t.title) || null
-                  const tierMeta = pickTier ? TIER_META[pickTier] : null
-                  const isPack = isSeasonPack(t.title)
-                  const prefsMatch = prefsOn && matchesPrefs(t._score, prefs)
-                  return (
-                    <div
-                      key={`r-${i}-${t.title}`}
-                      className={`torrent-row ${pickTier ? `best-pick best-pick-${pickTier}` : ''} ${prefsMatch ? 'prefs-match' : ''} ${detailTorrent?.title === t.title ? 'row-selected' : ''}`}
-                      onClick={() => setDetailTorrent(t)}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <span className="torrent-name">
-                        {tierMeta && (
-                          <span
-                            className={`best-pick-badge tier-${pickTier}`}
-                            title={`${tierMeta.label} (score ${t._score.score}) — ${scoreBreakdown(t._score)}\n(${tierContextLabel(scoringContext, t)})`}
-                          >
-                            {pickTier === 'budget'
-                              ? <span style={{fontSize: 11}}>💰</span>
-                              : <Star size={10} fill="currentColor" />}
-                            {' '}{tierMeta.label}
-                          </span>
-                        )}
-                        <span className={`type-tag ${isPack ? 'type-pack' : 'type-ep'}`}>
-                          {isPack ? 'Season Pack' : 'Episode'}
-                        </span>
-                        <span className={`quality-tag quality-${tagClass(qtag)}`}>{qtag}</span>
-                        {prefsMatch && (
-                          <span className="preset-match-tag" title="Matches your saved quality preset">
-                            ✓ Preset
-                          </span>
-                        )}
-                        {hasSpanishAudio(t.title) && (
-                          <span className="spanish-audio-tag" title="Likely includes Spanish audio">ES</span>
-                        )}
-                        <span className="torrent-name-text" title={t.title}>{t.title}</span>
-                      </span>
-                      <span className="torrent-size">{formatSize(t.size)}</span>
-                      <span className="torrent-seeds" style={{color: t.seeders > 10 ? 'var(--green)' : t.seeders > 0 ? 'var(--accent)' : 'var(--red)'}}>{t.seeders}</span>
-                      <span className="torrent-peers">{t.leechers ?? 0}</span>
-                      <span className={`ratio-pill ratio-${bucket}`} title={`${seeds} seeders / ${peers} peers (ratio ${ratioLabel}) — ${bucket}`}>
-                        <span className="ratio-line">{seeds}s</span>
-                        <span className="ratio-line">{peers}p</span>
-                      </span>
-                      <span className="torrent-indexer">{t.indexer}</span>
-                      <button className="download-btn" onClick={(e) => { e.stopPropagation(); handleAdd(t) }} disabled={downloading === t.title}>
-                        {downloading === t.title ? '...' : <><Download size={14} /> Get</>}
-                      </button>
-                    </div>
-                  )
+                let sections
+                if (seasonSearchMode) {
+                  const pinned = []
+                  const remainder = []
+                  for (const t of visibleTorrents) {
+                    if (pickTitleMap.has(t.title)) pinned.push(t)
+                    else remainder.push(t)
+                  }
+                  const packs = remainder.filter(t => isSeasonPack(t.title))
+                  const eps   = remainder.filter(t => !isSeasonPack(t.title))
+                  sections = [
+                    { items: pinned },
+                    { items: packs },
+                    ...(eps.length > 0
+                      ? [{ label: `Individual Episodes (${eps.length})`, items: eps }]
+                      : []),
+                  ]
+                } else {
+                  sections = [{ items: visibleTorrents }]
                 }
                 return (
-                  <div className="torrent-list">
-                    <div className="torrent-header">
-                      <span>Title</span><span>Size</span><span>Seeds</span><span>Peers</span>
-                      <span title="Seeder/Peer ratio">S/P</span><span>Source</span><span></span>
-                    </div>
-                    {pinned.map(renderRow)}
-                    {seasonSearchMode ? (
-                      <>
-                        {packs.map((t, i) => renderRow(t, `pack-${i}`))}
-                        {eps.length > 0 && (
-                          <div className="torrent-divider">Individual Episodes ({eps.length})</div>
-                        )}
-                        {eps.map((t, i) => renderRow(t, `ep-${i}`))}
-                      </>
-                    ) : (
-                      remainder.map((t, i) => renderRow(t, `r-${i}`))
+                  <TorrentList
+                    sections={sections}
+                    scoringContext={scoringContext}
+                    pickTitleMap={pickTitleMap}
+                    prefs={prefs}
+                    prefsOn={prefsOn}
+                    selectedTitle={detailTorrent?.title}
+                    downloadingTitle={downloading}
+                    onSelect={setDetailTorrent}
+                    onDownload={handleAdd}
+                    extraTags={t => (
+                      <span className={`type-tag ${isSeasonPack(t.title) ? 'type-pack' : 'type-ep'}`}>
+                        {isSeasonPack(t.title) ? 'Season Pack' : 'Episode'}
+                      </span>
                     )}
-                  </div>
+                  />
                 )
               })()}
             </>
@@ -739,8 +674,27 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
         .best-pick-badge.tier-quality { background: var(--accent); color: #000; }
         .best-pick-badge.tier-value   { background: var(--green);  color: #000; }
         .best-pick-badge.tier-budget  { background: #a855f7;       color: #fff; }
-        .torrent-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .torrent-name { display: flex; align-items: center; gap: 8px; min-width: 0; position: relative; }
         .torrent-name-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+        .torrent-name-tooltip {
+          position: absolute;
+          left: 0; top: calc(100% + 4px);
+          background: var(--surface2);
+          border: 1px solid var(--border);
+          color: var(--text);
+          padding: 6px 10px;
+          border-radius: 4px;
+          font-size: 12px;
+          line-height: 1.4;
+          white-space: normal;
+          max-width: 600px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.15s ease;
+          z-index: 20;
+        }
+        .torrent-name:hover .torrent-name-tooltip { opacity: 1; }
         .torrent-size, .torrent-indexer { color: var(--text-muted); font-size: 12px; }
         .torrent-seeds { font-weight: 600; font-size: 13px; }
         .torrent-peers { font-size: 13px; color: var(--text-muted); }
@@ -811,6 +765,7 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
           .torrent-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
           .torrent-name { flex: 1 1 100%; font-size: 13px; }
           .torrent-name-text { white-space: normal; word-break: break-word; overflow-wrap: anywhere; display: block; overflow: visible; }
+          .torrent-name-tooltip { display: none; }
           .torrent-size { flex: 0 0 auto; font-size: 12px; }
           .torrent-size::before { content: "📦 "; }
           .torrent-seeds, .torrent-peers { font-size: 12px; font-weight: 500; }
