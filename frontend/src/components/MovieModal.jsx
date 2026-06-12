@@ -8,37 +8,7 @@ import {
   scoreTorrent, pickBestThree, qualityTag,
   scoreBreakdown, tierContextLabel, TIER_META,
 } from '../torrentScoring'
-
-function formatSize(bytes) {
-  if (!bytes) return '?'
-  const gb = bytes / 1024 / 1024 / 1024
-  return gb >= 1 ? `${gb.toFixed(2)} GB` : `${(bytes / 1024 / 1024).toFixed(0)} MB`
-}
-
-// Scoring + tier logic lives in ../torrentScoring. We keep tagClass and
-// qualityRank locally since they're trivial display helpers.
-const TAG_RANK = { '4K': 5, 'BluRay': 4, 'WEB-DL': 3, 'WEBRip': 2, 'HDTV': 1, 'Unknown': 1, 'TS': 0, 'CAM': 0 }
-function qualityRank(title) { return TAG_RANK[qualityTag(title)] ?? 1 }
-function tagClass(tag) { return tag.toLowerCase().replace(/[^a-z0-9]/g, '') }
-
-function ratioInfo(t) {
-  const s = t.seeders || 0
-  const p = t.leechers || 0
-  const r = p === 0 ? (s > 0 ? Infinity : 0) : s / p
-  let bucket
-  if (s >= 20 && r >= 3) bucket = 'fast'
-  else if (s >= 5 || r >= 2) bucket = 'decent'
-  else bucket = 'slow'
-  return { ratio: r, bucket, seeds: s, peers: p }
-}
-
-const SORTS = [
-  { id: 'smart', label: 'Smart' },
-  { id: 'seeds', label: 'Seeders' },
-  { id: 'size-desc', label: 'Size ↓' },
-  { id: 'size-asc', label: 'Size ↑' },
-  { id: 'quality', label: 'Quality' },
-]
+import { formatSize, qualityRank, tagClass, ratioInfo, SORTS } from '../torrentDisplay'
 
 export default function MovieModal({ movie, onClose }) {
   const [detail, setDetail] = useState(null)
@@ -51,6 +21,7 @@ export default function MovieModal({ movie, onClose }) {
   const [sortKey, setSortKey] = useState('smart')
   const [expanded, setExpanded] = useState(false)
   const [spanishOnly, setSpanishOnly] = useState(false)
+  const [showAll, setShowAll] = useState(false)
   const [trailerOpen, setTrailerOpen] = useState(false)
   const [detailTorrent, setDetailTorrent] = useState(null)
   // Read prefs at mount; we don't need to react to changes mid-modal since
@@ -80,7 +51,27 @@ export default function MovieModal({ movie, onClose }) {
     [torrents, scoringContext]
   )
 
-  const bestPicks = useMemo(() => pickBestThree(scored, scoringContext), [scored, scoringContext])
+  // Backend tags each torrent with _match: year_match | no_year | other_year.
+  // visibleScored drives row rendering and respects the user's showAll toggle.
+  // badgeableScored always excludes other_year so a Best Pick badge always
+  // means "best for the movie you searched", never a sequel/other edition.
+  const visibleScored = useMemo(
+    () => showAll ? scored : scored.filter(t => t._match !== 'other_year'),
+    [scored, showAll]
+  )
+  const badgeableScored = useMemo(
+    () => scored.filter(t => t._match !== 'other_year'),
+    [scored]
+  )
+  const hiddenCount = useMemo(
+    () => scored.filter(t => t._match === 'other_year').length,
+    [scored]
+  )
+
+  const bestPicks = useMemo(
+    () => pickBestThree(badgeableScored, scoringContext),
+    [badgeableScored, scoringContext]
+  )
   // Quick title lookup for row rendering
   const pickTitleMap = useMemo(() => {
     const m = new Map()
@@ -91,7 +82,7 @@ export default function MovieModal({ movie, onClose }) {
   }, [bestPicks])
 
   const visibleTorrents = useMemo(() => {
-    let arr = scored
+    let arr = visibleScored
     if (filterText.trim()) {
       const q = filterText.toLowerCase()
       arr = arr.filter(t => (t.title || '').toLowerCase().includes(q))
@@ -121,7 +112,7 @@ export default function MovieModal({ movie, onClose }) {
       .filter(Boolean)
     const rest = sorted.filter(t => !pickTitleMap.has(t.title))
     return [...pinned, ...rest]
-  }, [scored, filterText, sortKey, bestPicks, pickTitleMap, spanishOnly, prefs.preferredTier])
+  }, [visibleScored, filterText, sortKey, bestPicks, pickTitleMap, spanishOnly, prefs.preferredTier])
 
   useEffect(() => {
     getMovieDetail(movie.id).then(r => setDetail(r.data))
@@ -338,6 +329,19 @@ export default function MovieModal({ movie, onClose }) {
                   >
                     Spanish
                   </button>
+                  {hiddenCount > 0 && (
+                    <button
+                      className={`sort-btn show-all-btn ${showAll ? 'active' : ''}`}
+                      onClick={() => setShowAll(v => !v)}
+                      title={showAll
+                        ? 'Hide releases tagged as a different year (likely sequels or other editions)'
+                        : 'These are releases whose title contains a different 4-digit year — likely sequels, remakes, or other editions'}
+                    >
+                      {showAll
+                        ? 'Hide other editions'
+                        : `${hiddenCount} hidden (different movie/edition) — show all`}
+                    </button>
+                  )}
                 </div>
                 <div className="ratio-legend" title="Seeder-to-peer ratio — higher means faster download">
                   <span className="legend-item"><span className="dot dot-fast" />fast</span>
@@ -915,13 +919,16 @@ export default function MovieModal({ movie, onClose }) {
             max-height: 100vh;
             height: 100vh;
             width: 100vw;
+            overflow-x: hidden;
           }
           .modal-expanded { max-width: 100%; }
           .modal-expand { display: none; }
           .modal-close {
+            position: fixed;
             top: max(14px, env(safe-area-inset-top));
             right: 14px;
             width: 44px; height: 44px;
+            z-index: 11;
           }
           .modal-hero-content {
             flex-direction: column;
@@ -970,10 +977,10 @@ export default function MovieModal({ movie, onClose }) {
           }
           .torrent-name-text {
             white-space: normal;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            display: block;
+            overflow: visible;
           }
           .torrent-name-tooltip { display: none; }
           .torrent-size {

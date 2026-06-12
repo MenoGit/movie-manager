@@ -102,7 +102,7 @@ SCORE_WEIGHTS = {
     "resolution": {"4K": 10, "1080p": 8, "720p": 5, "480p": 2, "other": 2},
     "source":     {"BluRay": 10, "WEB-DL": 9, "WEBRip": 7, "HDTV": 5, "TS": 1, "CAM": 0, "Unknown": 4},
     "audio":      {"Atmos": 10, "DTS-HD/TrueHD": 9, "DDP5.1": 8, "DTS": 7, "AAC5.1": 6, "AAC": 4, "Stereo": 3},
-    "hdr":        {"DV": 10, "HDR10+": 9, "HDR10": 8, "SDR": 3},
+    "hdr":        {"DV": 6, "HDR10+": 5, "HDR10": 5, "SDR": 4},
     "codec":      {"AV1": 10, "x265": 8, "x264": 5, "MPEG": 2, "unknown": 3},
 }
 
@@ -175,6 +175,18 @@ def _size_fit_bonus(size_gb: float, tiers: dict, tier: str) -> float:
     return 2 * (1 - dist)
 
 
+def _speed_score(seeds: int, peers: int) -> float:
+    """Steep curve below ~20 seeds, saturating at 18; +2 ratio bonus when
+    seeds/peers > 2. Folds the old seed-health and ratio bonuses into one
+    contribution so both the modal grade and the auto-downloader read the
+    same number. Mirrors frontend/src/torrentScoring.js::speedScore."""
+    if seeds <= 0:
+        return 0
+    base = min(math.log2(seeds + 1) * 3.3, 18)
+    ratio_bonus = 2 if peers > 0 and seeds / peers > 2 else 0
+    return base + ratio_bonus
+
+
 def score_torrent(t: dict, ctx: dict) -> dict:
     """Returns {score, parsed, size_gb, tier, eligible, seeds}."""
     parsed = parse_release(t.get("title") or "")
@@ -183,7 +195,6 @@ def score_torrent(t: dict, ctx: dict) -> dict:
 
     seeds = t.get("seeders") or 0
     peers = t.get("leechers") or 0
-    ratio = float("inf") if peers == 0 and seeds > 0 else (seeds / peers if peers > 0 else 0)
     is_bad_source = parsed["source"] in ("CAM", "TS")
     eligible = seeds >= 3 and not is_bad_source
 
@@ -194,10 +205,7 @@ def score_torrent(t: dict, ctx: dict) -> dict:
         + SCORE_WEIGHTS["hdr"].get(parsed["hdr"], 0)
         + SCORE_WEIGHTS["codec"].get(parsed["codec"], 0)
     )
-    if seeds > 0:
-        score += min(math.log2(seeds + 1), 5)
-    if ratio > 2:
-        score += 2
+    score += _speed_score(seeds, peers)
     if parsed["is_yts"]:
         score += 1
     tier = _tier_for(size_gb, tiers)

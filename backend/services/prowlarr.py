@@ -25,6 +25,32 @@ def _sort_by_year_match(results: list, year: int | None) -> list:
     return matching + other
 
 
+def _tag_by_year(results: list, year: int | None) -> list:
+    """Three-bucket tag-and-sort by release year. Mirrors manual triage:
+    a year match is almost certainly this movie; no year at all is probably
+    this movie too; a *different* year is likely a sequel/remake/other edition.
+    Nothing dropped — every result keeps a `_match` tag for downstream display."""
+    year = int(year) if year else None
+    if not year:
+        for t in results:
+            t["_match"] = "no_year"
+        results.sort(key=lambda t: t.get("seeders", 0), reverse=True)
+        return results
+    year_re = re.compile(rf"\b{year}\b")
+    any_year_re = re.compile(r"\b(19|20)\d{2}\b")
+    for t in results:
+        title = t.get("title") or ""
+        if year_re.search(title):
+            t["_match"] = "year_match"
+        elif not any_year_re.search(title):
+            t["_match"] = "no_year"
+        else:
+            t["_match"] = "other_year"
+    rank = {"year_match": 2, "no_year": 1, "other_year": 0}
+    results.sort(key=lambda t: (rank[t["_match"]], t.get("seeders", 0)), reverse=True)
+    return results
+
+
 def _format(results: list) -> list:
     results = [t for t in results if t.get("seeders", 0) > 0]
     results.sort(key=lambda x: x.get("seeders", 0), reverse=True)
@@ -55,26 +81,28 @@ async def search_torrents(query: str, limit: int = 20, year: int | None = None) 
         )
         r.raise_for_status()
         formatted = _format(r.json())
-    return _sort_by_year_match(formatted, year)
+    return _tag_by_year(formatted, year)
 
 
 def _matches_episode(title: str, season: int, episode: int) -> bool:
-    """True if the torrent title likely contains the requested S/E.
-    Handles common release naming: S03E01, S3E1, 3x01, 03x01, S03.E01, etc."""
+    """True if the title contains the requested S/E with non-digit boundaries
+    on both sides — so an E5 search doesn't false-match E50, and an E1 search
+    doesn't false-match E10. Normalization collapses non-alphanumerics to
+    spaces (not strips them) so "S01E01 1080p" doesn't become "S01E011080p"
+    and trip the trailing-boundary check."""
     if not title:
         return False
-    norm = re.sub(r"[^A-Z0-9]", "", title.upper())
-    patterns = {
-        f"S{season:02d}E{episode:02d}",
-        f"S{season}E{episode:02d}",
-        f"S{season:02d}E{episode}",
-        f"S{season}E{episode}",
-        f"{season:02d}X{episode:02d}",
-        f"{season}X{episode:02d}",
-        f"{season:02d}X{episode}",
-        f"{season}X{episode}",
-    }
-    return any(p in norm for p in patterns)
+    norm = re.sub(r"[^A-Z0-9]+", " ", title.upper())
+    patterns = [
+        f"S{season:02d}E{episode:02d}", f"S{season}E{episode:02d}",
+        f"S{season:02d}E{episode}",     f"S{season}E{episode}",
+        f"{season:02d}X{episode:02d}",  f"{season}X{episode:02d}",
+        f"{season:02d}X{episode}",      f"{season}X{episode}",
+    ]
+    return any(
+        re.search(rf"(?<!\d){re.escape(p)}(?!\d)", norm)
+        for p in patterns
+    )
 
 
 async def _single_search(params: dict) -> list:
@@ -158,7 +186,10 @@ async def search_tv_torrents(query: str, season: int | None = None,
         print(f"[prowlarr tv search] raw={len(raw)} seeded={len(formatted)}", flush=True)
         narrowed = [t for t in formatted if _matches_episode(t["title"], season, episode)]
         print(f"[prowlarr tv search] episode-narrowed: {len(narrowed)}", flush=True)
-        return _sort_by_year_match(narrowed if narrowed else formatted, year)
+        # Drop the fallback: if the strict filter found nothing, returning the
+        # whole unfiltered Prowlarr list silently shows wrong episodes / wrong
+        # shows. Better to show zero results than fake ones.
+        return _sort_by_year_match(narrowed, year)
 
     # ─── Season-pack search: multi-query strategy ─────────────────────
     if season is not None:

@@ -5,21 +5,28 @@ import { isSeasonPack } from '../torrentScoring'
 
 // ─── Grade mapping ────────────────────────────────────────────────────────
 
-// Empirical max around 60 (50 quality + 5 seeds + 2 ratio + 2 size + 1 YTS).
+// Empirical max around 70 (46 parsed quality + 18 seeds + 2 ratio + 2 size + 1 YTS).
 // Normalize to 100 with a cap.
 function normalizeScore(rawScore) {
-  return Math.max(0, Math.min(100, Math.round((rawScore / 60) * 100)))
+  return Math.max(0, Math.min(100, Math.round((rawScore / 70) * 100)))
 }
 
-function gradeFor(normalized) {
-  if (normalized >= 90) return { letter: 'A+', color: '#22c55e', verdict: 'Excellent download' }
-  if (normalized >= 80) return { letter: 'A',  color: '#22c55e', verdict: 'Great quality' }
-  if (normalized >= 75) return { letter: 'B+', color: '#84cc16', verdict: 'Very good' }
-  if (normalized >= 65) return { letter: 'B',  color: '#84cc16', verdict: 'Good enough' }
-  if (normalized >= 60) return { letter: 'C+', color: '#eab308', verdict: 'Decent with compromises' }
-  if (normalized >= 50) return { letter: 'C',  color: '#eab308', verdict: 'Below average' }
-  if (normalized >= 35) return { letter: 'D',  color: '#f97316', verdict: 'Poor quality' }
-  return                      { letter: 'F',  color: '#ef4444', verdict: 'Avoid this torrent' }
+// Operates on raw score so percentage and letter agree (raw 58/70 ≈ 83% → A+).
+// CAM/TS are letter-capped to F regardless of raw — a high-seed 1080p-labeled
+// CAM can score in the B range on the speed boost, but the source is
+// disqualifying, so the visible grade should say so plainly.
+function letterGrade(raw, source) {
+  if (source === 'CAM' || source === 'TS') {
+    return { letter: 'F', color: '#ef4444', verdict: 'Avoid — bad source' }
+  }
+  if (raw >= 58) return { letter: 'A+', color: '#22c55e', verdict: 'Excellent' }
+  if (raw >= 50) return { letter: 'A',  color: '#22c55e', verdict: 'Great' }
+  if (raw >= 43) return { letter: 'B+', color: '#84cc16', verdict: 'Very good' }
+  if (raw >= 36) return { letter: 'B',  color: '#84cc16', verdict: 'Good' }
+  if (raw >= 29) return { letter: 'C+', color: '#eab308', verdict: 'Watchable' }
+  if (raw >= 22) return { letter: 'C',  color: '#eab308', verdict: 'Compromised' }
+  if (raw >= 15) return { letter: 'D',  color: '#f97316', verdict: 'Poor' }
+  return                { letter: 'F',  color: '#ef4444', verdict: 'Avoid' }
 }
 
 // ─── Dot ratings (out of 5) ───────────────────────────────────────────────
@@ -174,8 +181,8 @@ function buildWarnings(torrent, score) {
 // ─── Score breakdown rows ─────────────────────────────────────────────────
 
 const SCORE_WEIGHTS_MAX = {
-  resolution: 10, source: 10, audio: 10, hdr: 10, codec: 10,
-  seeds: 5, size: 2,
+  resolution: 10, source: 10, audio: 10, hdr: 6, codec: 10,
+  seeds: 18, ratio: 2, size: 2,
 }
 
 function buildBreakdown(score) {
@@ -186,17 +193,20 @@ function buildBreakdown(score) {
   const RES_MAP    = { '4K': 10, '1080p': 8, '720p': 5, '480p': 2, 'other': 2 }
   const SRC_MAP    = { 'BluRay': 10, 'WEB-DL': 9, 'WEBRip': 7, 'HDTV': 5, 'TS': 1, 'CAM': 0, 'Unknown': 4 }
   const AUDIO_MAP  = { 'Atmos': 10, 'DTS-HD/TrueHD': 9, 'DDP5.1': 8, 'DTS': 7, 'AAC5.1': 6, 'AAC': 4, 'Stereo': 3 }
-  const HDR_MAP    = { 'DV': 10, 'HDR10+': 9, 'HDR10': 8, 'SDR': 3 }
+  const HDR_MAP    = { 'DV': 6, 'HDR10+': 5, 'HDR10': 5, 'SDR': 4 }
   const CODEC_MAP  = { 'AV1': 10, 'x265': 8, 'x264': 5, 'MPEG': 2, 'unknown': 3 }
   const seeds = score.seeds || 0
-  const seedScore = seeds > 0 ? Math.min(Math.log2(seeds + 1), 5) : 0
+  const peers = score.peers || 0
+  const seedScore  = seeds > 0 ? Math.min(Math.log2(seeds + 1) * 3.3, 18) : 0
+  const ratioScore = peers > 0 && seeds / peers > 2 ? 2 : 0
   return [
     { label: 'Resolution', got: RES_MAP[parsed.resolution] ?? 0, max: 10 },
     { label: 'Source',     got: SRC_MAP[parsed.source] ?? 0, max: 10 },
     { label: 'Audio',      got: AUDIO_MAP[parsed.audio] ?? 0, max: 10 },
-    { label: 'HDR',        got: HDR_MAP[parsed.hdr] ?? 0, max: 10 },
+    { label: 'HDR',        got: HDR_MAP[parsed.hdr] ?? 0, max: 6 },
     { label: 'Codec',      got: CODEC_MAP[parsed.codec] ?? 0, max: 10 },
-    { label: 'Seeds',      got: Math.round(seedScore * 10) / 10, max: 5 },
+    { label: 'Seeds',      got: Math.round(seedScore * 10) / 10, max: 18 },
+    { label: 'Ratio',      got: ratioScore, max: 2 },
     { label: 'Size fit',   got: score.tier ? 2 : 0, max: 2 },
   ]
 }
@@ -227,7 +237,7 @@ export default function TorrentDetailPanel({ torrent, context, onClose, onDownlo
   const score = torrent._score
   const parsed = score.parsed
   const normalized = normalizeScore(score.score)
-  const grade = gradeFor(normalized)
+  const grade = letterGrade(score.score, parsed.source)
   const warnings = buildWarnings(torrent, score)
   const breakdown = buildBreakdown(score)
   const totalGot = breakdown.reduce((a, r) => a + r.got, 0)

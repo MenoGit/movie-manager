@@ -88,7 +88,7 @@ const SCORE_WEIGHTS = {
   resolution: { '4K': 10, '1080p': 8, '720p': 5, '480p': 2, 'other': 2 },
   source: { 'BluRay': 10, 'WEB-DL': 9, 'WEBRip': 7, 'HDTV': 5, 'TS': 1, 'CAM': 0, 'Unknown': 4 },
   audio: { 'Atmos': 10, 'DTS-HD/TrueHD': 9, 'DDP5.1': 8, 'DTS': 7, 'AAC5.1': 6, 'AAC': 4, 'Stereo': 3 },
-  hdr: { 'DV': 10, 'HDR10+': 9, 'HDR10': 8, 'SDR': 3 },
+  hdr: { 'DV': 6, 'HDR10+': 5, 'HDR10': 5, 'SDR': 4 },
   codec: { 'AV1': 10, 'x265': 8, 'x264': 5, 'MPEG': 2, 'unknown': 3 },
 }
 
@@ -177,6 +177,16 @@ function sizeFitBonus(sizeGB, tiers, tier) {
   return 2 * (1 - dist) // 2 at center, 0 at edge
 }
 
+// Steep below ~20 seeds, saturates at 18, +2 when S/P > 2.
+// Mirrors backend services/scoring.py::_speed_score so the modal grade and
+// the auto-downloader read the same number.
+function speedScore(seeds, peers) {
+  if (seeds <= 0) return 0
+  const base = Math.min(Math.log2(seeds + 1) * 3.3, 18)
+  const ratioBonus = peers > 0 && seeds / peers > 2 ? 2 : 0
+  return base + ratioBonus
+}
+
 export function scoreTorrent(t, ctx) {
   const parsed = parseRelease(t.title)
   const tiers = tiersForTorrent(t, ctx)
@@ -196,10 +206,7 @@ export function scoreTorrent(t, ctx) {
     (SCORE_WEIGHTS.hdr[parsed.hdr]               ?? 0) +
     (SCORE_WEIGHTS.codec[parsed.codec]           ?? 0)
 
-  // Seed health: log2(seeds+1), capped at 5
-  if (seeds > 0) score += Math.min(Math.log2(seeds + 1), 5)
-  // S/P ratio bonus
-  if (ratio > 2) score += 2
+  score += speedScore(seeds, peers)
 
   // YTS small bonus — known efficient releases (helpful in Budget tier)
   if (parsed.isYTS) score += 1

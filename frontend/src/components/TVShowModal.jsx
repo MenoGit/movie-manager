@@ -19,39 +19,7 @@ import {
   scoreTorrent, pickBestThree, qualityTag,
   scoreBreakdown, tierContextLabel, TIER_META, isSeasonPack,
 } from '../torrentScoring'
-
-// ── Helpers shared with MovieModal. Duplicated here intentionally to keep
-//    Part 1 movie modal untouched; refactor candidate for a shared TorrentList. ──
-
-function formatSize(bytes) {
-  if (!bytes) return '?'
-  const gb = bytes / 1024 / 1024 / 1024
-  return gb >= 1 ? `${gb.toFixed(2)} GB` : `${(bytes / 1024 / 1024).toFixed(0)} MB`
-}
-
-// Scoring + tier logic shared with MovieModal via ../torrentScoring.
-const TAG_RANK = { '4K': 5, 'BluRay': 4, 'WEB-DL': 3, 'WEBRip': 2, 'HDTV': 1, 'Unknown': 1, 'TS': 0, 'CAM': 0 }
-function qualityRank(title) { return TAG_RANK[qualityTag(title)] ?? 1 }
-function tagClass(tag) { return tag.toLowerCase().replace(/[^a-z0-9]/g, '') }
-
-function ratioInfo(t) {
-  const s = t.seeders || 0
-  const p = t.leechers || 0
-  const r = p === 0 ? (s > 0 ? Infinity : 0) : s / p
-  let bucket
-  if (s >= 20 && r >= 3) bucket = 'fast'
-  else if (s >= 5 || r >= 2) bucket = 'decent'
-  else bucket = 'slow'
-  return { ratio: r, bucket, seeds: s, peers: p }
-}
-
-const SORTS = [
-  { id: 'smart', label: 'Smart' },
-  { id: 'seeds', label: 'Seeders' },
-  { id: 'size-desc', label: 'Size ↓' },
-  { id: 'size-asc', label: 'Size ↑' },
-  { id: 'quality', label: 'Quality' },
-]
+import { formatSize, qualityRank, tagClass, ratioInfo, SORTS } from '../torrentDisplay'
 
 export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePathLabel = 'TV-Shows' }) {
   const [detail, setDetail] = useState(null)
@@ -65,6 +33,7 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
   const [doneMsg, setDoneMsg] = useState('')
   const [scope, setScope] = useState({ season: null, episode: null })  // narrows last torrent search
   const [filterText, setFilterText] = useState('')
+  const [searchQuery, setSearchQuery] = useState(show.title)
   const [sortKey, setSortKey] = useState('smart')
   const [spanishOnly, setSpanishOnly] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -116,7 +85,7 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
     setScope({ season, episode })
     try {
       const yearStr = (show.release_date || show.first_air_date || detail?.first_air_date || '').slice(0, 4)
-      const r = await api.searchTorrents(show.title, season, episode, yearStr || undefined)
+      const r = await api.searchTorrents(searchQuery, season, episode, yearStr || undefined)
       setTorrents(r.data)
     } catch {
       setTorrents([])
@@ -409,6 +378,24 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
             <>
               <h3 className="section-title" style={{marginTop: 32}}>Available Torrents</h3>
               <div className="search-row">
+                <input
+                  className="torrent-search"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && scope.season != null) {
+                      fetchTorrents(scope.season, scope.episode)
+                    }
+                  }}
+                  placeholder="Search torrents..."
+                />
+                <button
+                  className="search-btn"
+                  onClick={() => scope.season != null && fetchTorrents(scope.season, scope.episode)}
+                  title="Re-search with this query"
+                >
+                  <Search size={16} />
+                </button>
                 <input
                   className="torrent-filter"
                   value={filterText}
@@ -762,6 +749,10 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
         .search-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; flex-wrap: wrap; }
         .torrent-filter { flex: 1; min-width: 200px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: var(--radius); font-size: 13px; outline: none; }
         .torrent-filter:focus { border-color: var(--accent); }
+        .torrent-search { flex: 2 1 240px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: var(--radius); font-size: 14px; outline: none; transition: border-color 0.2s; }
+        .torrent-search:focus { border-color: var(--accent); }
+        .search-btn { background: var(--accent); color: #000; padding: 10px 16px; border-radius: var(--radius); font-weight: 600; display: flex; align-items: center; }
+        .search-btn:hover { background: #f0b040; }
         .scope-chip { font-size: 12px; color: var(--text-muted); padding: 6px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; }
         .scope-label { color: var(--text-muted); margin-right: 4px; }
         .save-hint { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
@@ -854,10 +845,10 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
 
         @media (max-width: 768px) {
           .modal-backdrop { padding: 0; }
-          .modal { border-radius: 0; border: none; max-width: 100%; max-height: 100vh; height: 100vh; width: 100vw; }
+          .modal { border-radius: 0; border: none; max-width: 100%; max-height: 100vh; height: 100vh; width: 100vw; overflow-x: hidden; }
           .modal-expanded { max-width: 100%; }
           .modal-expand { display: none; }
-          .modal-close { top: max(14px, env(safe-area-inset-top)); right: 14px; width: 44px; height: 44px; }
+          .modal-close { position: fixed; top: max(14px, env(safe-area-inset-top)); right: 14px; width: 44px; height: 44px; z-index: 11; }
           .modal-hero-content { flex-direction: column; align-items: center; text-align: center; padding: 24px 16px; padding-top: max(56px, calc(env(safe-area-inset-top) + 56px)); }
           .modal-hero { border-radius: 0; }
           .trailer-embed { margin: 0 0 16px; border-radius: 0; border-left: 0; border-right: 0; }
@@ -865,12 +856,20 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
           .modal-poster { width: 140px; min-width: 0; }
           .modal-title { font-size: 1.5rem; }
           .modal-body { padding: 18px 16px 28px; }
+          .torrent-search { flex: 1 1 70%; font-size: 14px; }
+          .torrent-filter { flex: 1 1 100%; min-width: 0; width: 100%; }
           .episode-row { grid-template-columns: 100px 1fr auto; gap: 10px; padding: 10px; }
           .episode-thumb { width: 100px; }
           .torrent-header { display: none; }
           .torrent-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
           .torrent-name { flex: 1 1 100%; font-size: 13px; }
-          .torrent-name-text { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+          .torrent-name-text { white-space: normal; word-break: break-word; overflow-wrap: anywhere; display: block; overflow: visible; }
+          .torrent-size { flex: 0 0 auto; font-size: 12px; }
+          .torrent-size::before { content: "📦 "; }
+          .torrent-seeds, .torrent-peers { font-size: 12px; font-weight: 500; }
+          .torrent-seeds::after { content: " seeds"; color: var(--text-muted); font-weight: 400; }
+          .torrent-peers::after { content: " peers"; color: var(--text-muted); font-weight: 400; }
+          .torrent-indexer { font-size: 11px; color: var(--text-muted); }
           .ratio-pill { margin-left: auto; max-width: 56px; }
           .download-btn { flex: 1 1 100%; margin-top: 6px; justify-content: center; padding: 11px 16px; min-height: 44px; }
         }
