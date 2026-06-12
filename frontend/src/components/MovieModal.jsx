@@ -1,14 +1,18 @@
 import { useState, useEffect, useMemo } from 'react'
 import { X, Download, Search, Play, Check, AlertTriangle, Maximize2, Minimize2, Star } from 'lucide-react'
 import { getMovieDetail, searchTorrents, addTorrent, refreshPlex } from '../api'
-import { hasSpanishAudio, readPrefs, matchesPrefs, prefsActive } from '../utils'
+import { hasSpanishAudio, matchesPrefs } from '../utils'
 import AutoDownloadButton from './AutoDownloadButton'
 import TorrentDetailPanel from './TorrentDetailPanel'
-import {
-  scoreTorrent, pickBestThree, qualityTag,
-  scoreBreakdown, tierContextLabel, TIER_META,
-} from '../torrentScoring'
-import { formatSize, qualityRank, tagClass, ratioInfo, SORTS } from '../torrentDisplay'
+import { qualityTag, scoreBreakdown, tierContextLabel, TIER_META } from '../torrentScoring'
+import { formatSize, tagClass, ratioInfo, SORTS } from '../torrentDisplay'
+import useTorrentView from '../useTorrentView'
+
+// Backend tags each torrent with _match: year_match | no_year | other_year.
+// A different 4-digit year usually means a sequel/remake/other edition: rows
+// are hidden unless the user hits the showAll toggle, and Best Pick badges
+// never go to them — a badge always means "best for the movie you searched".
+const isOtherYear = (t) => t._match === 'other_year'
 
 export default function MovieModal({ movie, onClose }) {
   const [detail, setDetail] = useState(null)
@@ -17,102 +21,29 @@ export default function MovieModal({ movie, onClose }) {
   const [loading, setLoading] = useState(false)
   const [downloading, setDownloading] = useState(null)
   const [done, setDone] = useState(false)
-  const [filterText, setFilterText] = useState('')
-  const [sortKey, setSortKey] = useState('smart')
   const [expanded, setExpanded] = useState(false)
-  const [spanishOnly, setSpanishOnly] = useState(false)
   const [showAll, setShowAll] = useState(false)
   const [trailerOpen, setTrailerOpen] = useState(false)
   const [detailTorrent, setDetailTorrent] = useState(null)
-  // Read prefs at mount; we don't need to react to changes mid-modal since
-  // closing/reopening the SettingsOverlay re-reads on next mount of MovieModal.
-  const prefs = useMemo(() => readPrefs(), [])
-  const prefsOn = useMemo(() => prefsActive(prefs), [prefs])
-
-  const showLowQualityWarning = useMemo(() => {
-    if (torrents.length === 0) return false
-    const topBySeeds = [...torrents]
-      .sort((a, b) => (b.seeders || 0) - (a.seeders || 0))
-      .slice(0, 5)
-    const badCount = topBySeeds.filter(t => {
-      const q = qualityTag(t.title)
-      return q === 'CAM' || q === 'TS'
-    }).length
-    return badCount >= 2
-  }, [torrents])
 
   const scoringContext = useMemo(
     () => ({ mode: 'movie', runtimeMin: detail?.runtime || null }),
     [detail?.runtime]
   )
 
-  const scored = useMemo(
-    () => torrents.map(t => ({ ...t, _score: scoreTorrent(t, scoringContext) })),
-    [torrents, scoringContext]
-  )
+  const {
+    filterText, setFilterText, sortKey, setSortKey,
+    spanishOnly, setSpanishOnly, prefs, prefsOn,
+    scored, bestPicks, pickTitleMap, visibleTorrents, showLowQualityWarning,
+  } = useTorrentView(torrents, scoringContext, {
+    excludeFromView: showAll ? null : isOtherYear,
+    excludeFromPicks: isOtherYear,
+  })
 
-  // Backend tags each torrent with _match: year_match | no_year | other_year.
-  // visibleScored drives row rendering and respects the user's showAll toggle.
-  // badgeableScored always excludes other_year so a Best Pick badge always
-  // means "best for the movie you searched", never a sequel/other edition.
-  const visibleScored = useMemo(
-    () => showAll ? scored : scored.filter(t => t._match !== 'other_year'),
-    [scored, showAll]
-  )
-  const badgeableScored = useMemo(
-    () => scored.filter(t => t._match !== 'other_year'),
-    [scored]
-  )
   const hiddenCount = useMemo(
-    () => scored.filter(t => t._match === 'other_year').length,
+    () => scored.filter(isOtherYear).length,
     [scored]
   )
-
-  const bestPicks = useMemo(
-    () => pickBestThree(badgeableScored, scoringContext),
-    [badgeableScored, scoringContext]
-  )
-  // Quick title lookup for row rendering
-  const pickTitleMap = useMemo(() => {
-    const m = new Map()
-    if (bestPicks.quality) m.set(bestPicks.quality.title, 'quality')
-    if (bestPicks.value)   m.set(bestPicks.value.title, 'value')
-    if (bestPicks.budget)  m.set(bestPicks.budget.title, 'budget')
-    return m
-  }, [bestPicks])
-
-  const visibleTorrents = useMemo(() => {
-    let arr = visibleScored
-    if (filterText.trim()) {
-      const q = filterText.toLowerCase()
-      arr = arr.filter(t => (t.title || '').toLowerCase().includes(q))
-    }
-    if (spanishOnly) {
-      arr = arr.filter(t => hasSpanishAudio(t.title))
-    }
-    const sorter = (a, b) => {
-      switch (sortKey) {
-        case 'smart': return b._score.score - a._score.score
-        case 'seeds': return (b.seeders || 0) - (a.seeders || 0)
-        case 'size-asc': return (a.size || 0) - (b.size || 0)
-        case 'size-desc': return (b.size || 0) - (a.size || 0)
-        case 'quality': return qualityRank(b.title) - qualityRank(a.title)
-        default: return 0
-      }
-    }
-    const sorted = [...arr].sort(sorter)
-    // If user has a preferred tier, pin it FIRST then the rest in default order
-    const tierOrder = prefs.preferredTier && prefs.preferredTier !== 'any'
-      ? [prefs.preferredTier, ...['quality', 'value', 'budget'].filter(x => x !== prefs.preferredTier)]
-      : ['quality', 'value', 'budget']
-    const pinned = tierOrder
-      .map(tier => bestPicks[tier])
-      .filter(Boolean)
-      .map(pick => sorted.find(t => t.title === pick.title))
-      .filter(Boolean)
-    const rest = sorted.filter(t => !pickTitleMap.has(t.title))
-    return [...pinned, ...rest]
-  }, [visibleScored, filterText, sortKey, bestPicks, pickTitleMap, spanishOnly, prefs.preferredTier])
 
   useEffect(() => {
     getMovieDetail(movie.id).then(r => setDetail(r.data))

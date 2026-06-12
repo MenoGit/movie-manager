@@ -12,14 +12,14 @@ const DEFAULT_API = {
   searchTorrents: searchTVTorrents,
   addTorrent: addTVTorrent,
 }
-import { hasSpanishAudio, readPrefs, matchesPrefs, prefsActive } from '../utils'
+import { hasSpanishAudio, matchesPrefs } from '../utils'
 import AutoDownloadButton from './AutoDownloadButton'
 import TorrentDetailPanel from './TorrentDetailPanel'
 import {
-  scoreTorrent, pickBestThree, qualityTag,
-  scoreBreakdown, tierContextLabel, TIER_META, isSeasonPack,
+  qualityTag, scoreBreakdown, tierContextLabel, TIER_META, isSeasonPack,
 } from '../torrentScoring'
-import { formatSize, qualityRank, tagClass, ratioInfo, SORTS } from '../torrentDisplay'
+import { formatSize, tagClass, ratioInfo, SORTS } from '../torrentDisplay'
+import useTorrentView from '../useTorrentView'
 
 export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePathLabel = 'TV-Shows' }) {
   const [detail, setDetail] = useState(null)
@@ -32,15 +32,10 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
   const [done, setDone] = useState(false)
   const [doneMsg, setDoneMsg] = useState('')
   const [scope, setScope] = useState({ season: null, episode: null })  // narrows last torrent search
-  const [filterText, setFilterText] = useState('')
   const [searchQuery, setSearchQuery] = useState(show.title)
-  const [sortKey, setSortKey] = useState('smart')
-  const [spanishOnly, setSpanishOnly] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [trailerOpen, setTrailerOpen] = useState(false)
   const [detailTorrent, setDetailTorrent] = useState(null)
-  const prefs = useMemo(() => readPrefs(), [])
-  const prefsOn = useMemo(() => prefsActive(prefs), [prefs])
 
   useEffect(() => {
     document.body.classList.add('modal-open')
@@ -126,59 +121,11 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
     }
   }, [detail, scope.season, scope.episode, selectedSeason])
 
-  const scored = useMemo(
-    () => torrents.map(t => ({ ...t, _score: scoreTorrent(t, scoringContext) })),
-    [torrents, scoringContext]
-  )
-
-  const bestPicks = useMemo(() => pickBestThree(scored, scoringContext), [scored, scoringContext])
-
-  const pickTitleMap = useMemo(() => {
-    const m = new Map()
-    if (bestPicks.quality) m.set(bestPicks.quality.title, 'quality')
-    if (bestPicks.value)   m.set(bestPicks.value.title, 'value')
-    if (bestPicks.budget)  m.set(bestPicks.budget.title, 'budget')
-    return m
-  }, [bestPicks])
-
-  const showLowQualityWarning = useMemo(() => {
-    if (torrents.length === 0) return false
-    const top = [...torrents].sort((a, b) => (b.seeders || 0) - (a.seeders || 0)).slice(0, 5)
-    return top.filter(t => {
-      const q = qualityTag(t.title)
-      return q === 'CAM' || q === 'TS'
-    }).length >= 2
-  }, [torrents])
-
-  const visibleTorrents = useMemo(() => {
-    let arr = scored
-    if (filterText.trim()) {
-      const q = filterText.toLowerCase()
-      arr = arr.filter(t => (t.title || '').toLowerCase().includes(q))
-    }
-    if (spanishOnly) arr = arr.filter(t => hasSpanishAudio(t.title))
-    const sorter = (a, b) => {
-      switch (sortKey) {
-        case 'smart': return b._score.score - a._score.score
-        case 'seeds': return (b.seeders || 0) - (a.seeders || 0)
-        case 'size-asc': return (a.size || 0) - (b.size || 0)
-        case 'size-desc': return (b.size || 0) - (a.size || 0)
-        case 'quality': return qualityRank(b.title) - qualityRank(a.title)
-        default: return 0
-      }
-    }
-    const sorted = [...arr].sort(sorter)
-    const tierOrder = prefs.preferredTier && prefs.preferredTier !== 'any'
-      ? [prefs.preferredTier, ...['quality', 'value', 'budget'].filter(x => x !== prefs.preferredTier)]
-      : ['quality', 'value', 'budget']
-    const pinned = tierOrder
-      .map(tier => bestPicks[tier])
-      .filter(Boolean)
-      .map(pick => sorted.find(t => t.title === pick.title))
-      .filter(Boolean)
-    const rest = sorted.filter(t => !pickTitleMap.has(t.title))
-    return [...pinned, ...rest]
-  }, [scored, filterText, sortKey, bestPicks, pickTitleMap, spanishOnly, prefs.preferredTier])
+  const {
+    filterText, setFilterText, sortKey, setSortKey,
+    spanishOnly, setSpanishOnly, prefs, prefsOn,
+    bestPicks, pickTitleMap, visibleTorrents, showLowQualityWarning,
+  } = useTorrentView(torrents, scoringContext)
 
   const year = (show.release_date || show.first_air_date || '').split('-')[0]
   const trailer = detail?.trailer
