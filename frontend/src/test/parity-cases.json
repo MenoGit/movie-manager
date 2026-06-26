@@ -1,0 +1,365 @@
+{
+  "_comment": [
+    "Cross-language parity contract for backend/services/scoring.py and",
+    "frontend/src/torrentScoring.js. Generated from current behavior",
+    "(characterization). Consumed by backend/tests/test_parity.py (pytest)",
+    "and frontend/src/torrentScoring.parity.test.js (vitest). If you change",
+    "either implementation, both suites must still match this file \u2014",
+    "regenerate it deliberately, never edit one side alone."
+  ],
+  "parse_cases": [
+    {
+      "title": "Oppenheimer.2023.2160p.UHD.BluRay.REMUX.DV.Atmos.TrueHD.7.1-GROUP",
+      "expected": {
+        "resolution": "4K",
+        "source": "BluRay",
+        "audio": "Atmos",
+        "hdr": "DV",
+        "codec": "unknown",
+        "remux": true,
+        "yts": false
+      }
+    },
+    {
+      "title": "The.Matrix.1999.1080p.WEB-DL.DDP5.1.H.264-GROUP",
+      "expected": {
+        "resolution": "1080p",
+        "source": "WEB-DL",
+        "audio": "DDP5.1",
+        "hdr": "SDR",
+        "codec": "x264",
+        "remux": false,
+        "yts": false
+      }
+    },
+    {
+      "title": "Movie.2024.720p.HDTV.x265.AAC",
+      "expected": {
+        "resolution": "720p",
+        "source": "HDTV",
+        "audio": "AAC",
+        "hdr": "SDR",
+        "codec": "x265",
+        "remux": false,
+        "yts": false
+      }
+    },
+    {
+      "title": "New.Release.2026.HDCAM.x264.AAC-NOGRP",
+      "expected": {
+        "resolution": "other",
+        "source": "CAM",
+        "audio": "AAC",
+        "hdr": "SDR",
+        "codec": "x264",
+        "remux": false,
+        "yts": false
+      }
+    },
+    {
+      "title": "Some.Film.2025.TELESYNC.XviD",
+      "expected": {
+        "resolution": "other",
+        "source": "TS",
+        "audio": "Stereo",
+        "hdr": "SDR",
+        "codec": "MPEG",
+        "remux": false,
+        "yts": false
+      }
+    },
+    {
+      "title": "Breaking.Bad.S02E01.1080p.BluRay.DTS.x264-SiNNERS",
+      "expected": {
+        "resolution": "1080p",
+        "source": "BluRay",
+        "audio": "DTS",
+        "hdr": "SDR",
+        "codec": "x264",
+        "remux": false,
+        "yts": false
+      }
+    },
+    {
+      "title": "Show.S01.COMPLETE.1080p.WEBRip.AAC5.1.x265-RARBG",
+      "expected": {
+        "resolution": "1080p",
+        "source": "WEBRip",
+        "audio": "AAC5.1",
+        "hdr": "SDR",
+        "codec": "x265",
+        "remux": false,
+        "yts": false
+      }
+    },
+    {
+      "title": "Indie.Film.2023.1080p.BluRay.x264.YTS.MX",
+      "expected": {
+        "resolution": "1080p",
+        "source": "BluRay",
+        "audio": "Stereo",
+        "hdr": "SDR",
+        "codec": "x264",
+        "remux": false,
+        "yts": true
+      }
+    },
+    {
+      "title": "Documentary.2160p.WEBRip.HDR10+.EAC3.AV1",
+      "expected": {
+        "resolution": "4K",
+        "source": "WEBRip",
+        "audio": "DDP5.1",
+        "hdr": "HDR10+",
+        "codec": "AV1",
+        "remux": false,
+        "yts": false
+      }
+    },
+    {
+      "title": "Old.Classic.Dolby.Vision.2160p.WEB-DL",
+      "expected": {
+        "resolution": "4K",
+        "source": "WEB-DL",
+        "audio": "Stereo",
+        "hdr": "DV",
+        "codec": "unknown",
+        "remux": false,
+        "yts": false
+      }
+    },
+    {
+      "title": "Random title with no markers at all",
+      "expected": {
+        "resolution": "other",
+        "source": "Unknown",
+        "audio": "Stereo",
+        "hdr": "SDR",
+        "codec": "unknown",
+        "remux": false,
+        "yts": false
+      }
+    },
+    {
+      "title": "Movie.2024.DVDRip.x264",
+      "expected": {
+        "resolution": "other",
+        "source": "Unknown",
+        "audio": "Stereo",
+        "hdr": "SDR",
+        "codec": "x264",
+        "remux": false,
+        "yts": false
+      }
+    },
+    {
+      "title": "Anime.Show.S03.1080p.HEVC.BATCH",
+      "expected": {
+        "resolution": "1080p",
+        "source": "Unknown",
+        "audio": "Stereo",
+        "hdr": "SDR",
+        "codec": "x265",
+        "remux": false,
+        "yts": false
+      }
+    }
+  ],
+  "speed_cases": [
+    {
+      "seeds": 0,
+      "peers": 0,
+      "expected": 0
+    },
+    {
+      "seeds": 1,
+      "peers": 0,
+      "expected": 3.3
+    },
+    {
+      "seeds": 2,
+      "peers": 0,
+      "expected": 5.230376252
+    },
+    {
+      "seeds": 3,
+      "peers": 1,
+      "expected": 8.6
+    },
+    {
+      "seeds": 5,
+      "peers": 2,
+      "expected": 10.530376252
+    },
+    {
+      "seeds": 10,
+      "peers": 20,
+      "expected": 11.416124342
+    },
+    {
+      "seeds": 20,
+      "peers": 5,
+      "expected": 16.494647495
+    },
+    {
+      "seeds": 42,
+      "peers": 100,
+      "expected": 17.906673691
+    },
+    {
+      "seeds": 43,
+      "peers": 0,
+      "expected": 18
+    },
+    {
+      "seeds": 50,
+      "peers": 10,
+      "expected": 20
+    },
+    {
+      "seeds": 100,
+      "peers": 0,
+      "expected": 18
+    },
+    {
+      "seeds": 1000,
+      "peers": 3,
+      "expected": 20
+    }
+  ],
+  "score_cases": [
+    {
+      "title": "The.Matrix.1999.1080p.WEB-DL.DDP5.1.H.264-GROUP",
+      "size_bytes": 8589934592,
+      "seeders": 120,
+      "leechers": 10,
+      "ctx": {
+        "mode": "movie"
+      },
+      "expected": {
+        "score": 56.0,
+        "tier": "value",
+        "eligible": true
+      }
+    },
+    {
+      "title": "Oppenheimer.2023.2160p.UHD.BluRay.REMUX.DV.Atmos.TrueHD.7.1-GROUP",
+      "size_bytes": 59055800320,
+      "seeders": 40,
+      "leechers": 8,
+      "ctx": {
+        "mode": "movie"
+      },
+      "expected": {
+        "score": 58.7,
+        "tier": null,
+        "eligible": true
+      }
+    },
+    {
+      "title": "Oppenheimer.2023.2160p.BluRay.DV.Atmos.TrueHD.x265",
+      "size_bytes": 19864223744,
+      "seeders": 60,
+      "leechers": 6,
+      "ctx": {
+        "mode": "movie"
+      },
+      "expected": {
+        "score": 66.0,
+        "tier": "quality",
+        "eligible": true
+      }
+    },
+    {
+      "title": "New.Release.2026.HDCAM.x264.AAC-NOGRP",
+      "size_bytes": 2147483648,
+      "seeders": 50,
+      "leechers": 5,
+      "ctx": {
+        "mode": "movie"
+      },
+      "expected": {
+        "score": 36.6,
+        "tier": "budget",
+        "eligible": false
+      }
+    },
+    {
+      "title": "Indie.Film.2023.1080p.BluRay.x264.YTS.MX",
+      "size_bytes": 2254857830,
+      "seeders": 80,
+      "leechers": 30,
+      "ctx": {
+        "mode": "movie"
+      },
+      "expected": {
+        "score": 52.7,
+        "tier": "budget",
+        "eligible": true
+      }
+    },
+    {
+      "title": "Low.Seed.Movie.2024.1080p.WEBRip.x264",
+      "size_bytes": 9663676416,
+      "seeders": 2,
+      "leechers": 1,
+      "ctx": {
+        "mode": "movie"
+      },
+      "expected": {
+        "score": 33.7,
+        "tier": "value",
+        "eligible": false
+      }
+    },
+    {
+      "title": "Breaking.Bad.S02E01.1080p.BluRay.DTS.x264-SiNNERS",
+      "size_bytes": 1717986918,
+      "seeders": 35,
+      "leechers": 4,
+      "ctx": {
+        "mode": "tv",
+        "runtimeMin": 45,
+        "episodeCount": 13
+      },
+      "expected": {
+        "score": 54.9,
+        "tier": "value",
+        "eligible": true
+      }
+    },
+    {
+      "title": "Show.S01.COMPLETE.1080p.WEBRip.AAC5.1.x265-RARBG",
+      "size_bytes": 26843545600,
+      "seeders": 22,
+      "leechers": 3,
+      "ctx": {
+        "mode": "tv",
+        "runtimeMin": 45,
+        "episodeCount": 10,
+        "isSeasonSearch": true
+      },
+      "expected": {
+        "score": 49.9,
+        "tier": "quality",
+        "eligible": true
+      }
+    },
+    {
+      "title": "Show.S01E03.720p.HDTV.x264",
+      "size_bytes": 429496729,
+      "seeders": 15,
+      "leechers": 2,
+      "ctx": {
+        "mode": "tv",
+        "runtimeMin": 22,
+        "episodeCount": 12
+      },
+      "expected": {
+        "score": 38.2,
+        "tier": "budget",
+        "eligible": true
+      }
+    }
+  ]
+}

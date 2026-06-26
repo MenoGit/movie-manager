@@ -180,7 +180,7 @@ function sizeFitBonus(sizeGB, tiers, tier) {
 // Steep below ~20 seeds, saturates at 18, +2 when S/P > 2.
 // Mirrors backend services/scoring.py::_speed_score so the modal grade and
 // the auto-downloader read the same number.
-function speedScore(seeds, peers) {
+export function speedScore(seeds, peers) {
   if (seeds <= 0) return 0
   const base = Math.min(Math.log2(seeds + 1) * 3.3, 18)
   const ratioBonus = peers > 0 && seeds / peers > 2 ? 2 : 0

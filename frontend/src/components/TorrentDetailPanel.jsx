@@ -7,7 +7,7 @@ import { isSeasonPack } from '../torrentScoring'
 
 // Empirical max around 70 (46 parsed quality + 18 seeds + 2 ratio + 2 size + 1 YTS).
 // Normalize to 100 with a cap.
-function normalizeScore(rawScore) {
+export function normalizeScore(rawScore) {
   return Math.max(0, Math.min(100, Math.round((rawScore / 70) * 100)))
 }
 
@@ -15,7 +15,7 @@ function normalizeScore(rawScore) {
 // CAM/TS are letter-capped to F regardless of raw — a high-seed 1080p-labeled
 // CAM can score in the B range on the speed boost, but the source is
 // disqualifying, so the visible grade should say so plainly.
-function letterGrade(raw, source) {
+export function letterGrade(raw, source) {
   if (source === 'CAM' || source === 'TS') {
     return { letter: 'F', color: '#ef4444', verdict: 'Avoid — bad source' }
   }
