@@ -93,15 +93,19 @@ def _matches_episode(title: str, season: int, episode: int) -> bool:
     if not title:
         return False
     norm = re.sub(r"[^A-Z0-9]+", " ", title.upper())
-    patterns = [
-        f"S{season:02d}E{episode:02d}", f"S{season}E{episode:02d}",
-        f"S{season:02d}E{episode}",     f"S{season}E{episode}",
-        f"{season:02d}X{episode:02d}",  f"{season}X{episode:02d}",
-        f"{season:02d}X{episode}",      f"{season}X{episode}",
+    # Season/episode token pairs. An optional single space between the two
+    # tokens lets separator-style naming match too: "S03.E01" normalizes to
+    # "S03 E01", which should still count as S03E01. The (?<!\d)/(?!\d) guards
+    # keep E1 from matching E10 and 3x01 from matching 13x01.
+    token_pairs = [
+        (f"S{season:02d}", f"E{episode:02d}"), (f"S{season}", f"E{episode:02d}"),
+        (f"S{season:02d}", f"E{episode}"),     (f"S{season}", f"E{episode}"),
+        (f"{season:02d}", f"X{episode:02d}"),  (f"{season}", f"X{episode:02d}"),
+        (f"{season:02d}", f"X{episode}"),      (f"{season}", f"X{episode}"),
     ]
     return any(
-        re.search(rf"(?<!\d){re.escape(p)}(?!\d)", norm)
-        for p in patterns
+        re.search(rf"(?<!\d){re.escape(left)}\s?{re.escape(right)}(?!\d)", norm)
+        for left, right in token_pairs
     )
 
 

@@ -127,12 +127,16 @@ class TestMatchesEpisode:
         assert _matches_episode("", 1, 1) is False
         assert _matches_episode(None, 1, 1) is False
 
-    def test_dot_separated_se_marker_does_not_match(self):
-        # CHARACTERIZATION OF A BEHAVIOR CHANGE — see test-suite findings.
-        # "S03.E01" normalizes to "S03 E01" (separators become spaces), and no
-        # pattern contains a space, so this no longer matches. The pre-fix
-        # implementation stripped separators and DID match this form.
-        assert _matches_episode("Show.S03.E01.1080p", 3, 1) is False
+    def test_dot_separated_se_marker_matches(self):
+        # Regression fix: "S03.E01" normalizes to "S03 E01"; the optional space
+        # between season/episode tokens lets it match S03E01 again.
+        assert _matches_episode("Show.S03.E01.1080p", 3, 1) is True
+        assert _matches_episode("Show S03 E01 1080p", 3, 1) is True
+
+    def test_dot_separated_does_not_loosen_episode_boundary(self):
+        # The space allowance must not reopen the E1/E10 hole.
+        assert _matches_episode("Show.S03.E10.1080p", 3, 1) is False
+        assert _matches_episode("Show.S03.E01.1080p", 3, 10) is False
 
 
 # ─── _format ────────────────────────────────────────────────────────────────
