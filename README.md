@@ -64,3 +64,24 @@ cd frontend
 npm install
 npm run dev
 ```
+
+## Tests
+
+One command runs everything — backend pytest on the host, frontend vitest inside the running frontend container (no node needed on the host):
+
+```bash
+./run-tests.sh             # backend + frontend
+./run-tests.sh --backend   # backend only; extra args pass to pytest, e.g. -k prowlarr -x
+./run-tests.sh --frontend  # frontend only (needs: docker compose up -d frontend)
+```
+
+Backend deps live in the gitignored `.pytest-deps/` (no venv needed); the script bootstraps it automatically on first run. The suite makes **no network calls** — external services (Prowlarr, qBittorrent, TMDb, Plex) are mocked at the httpx transport layer via the `mock_http` fixture in `backend/tests/conftest.py`.
+
+What's covered:
+
+- `backend/tests/test_scoring.py`, `test_prowlarr.py` — pure logic: release parsing, torrent scoring/tiers, year bucketing, episode matching
+- `backend/tests/test_*_integration.py` — service + router flows against mocked HTTP: Prowlarr search strategies, qBittorrent login/add/queue, TMDb detail + theatrical-only heuristic, Plex library index, download-queue auto-completion
+- `frontend/src/test/*.test.js` — vitest for the JS scoring/display helpers
+- **Parity contract**: `frontend/src/test/parity-cases.json` is asserted by both `backend/tests/test_parity.py` and `torrentScoring.parity.test.js` so the Python and JS scorers can't drift apart. Regenerate it deliberately — never edit one side to make a test pass.
+
+These are characterization tests: they lock in current behavior. If one fails after a change, decide whether the code or the locked-in expectation is wrong — don't reflexively update the test.
