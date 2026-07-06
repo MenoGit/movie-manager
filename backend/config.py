@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     prowlarr_api_key: str
     plex_url: str
     plex_token: str
+    jellyfin_url: str
+    jellyfin_api_key: str
     movies_path: str = "/mnt/media/movies"
     tv_shows_path: str = "/mnt/media/tv-shows"
 

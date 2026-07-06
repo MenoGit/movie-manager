@@ -23,6 +23,8 @@ _DUMMY_ENV = {
     "PROWLARR_API_KEY": "test-prowlarr-key",
     "PLEX_URL": "http://plex.test:32400",
     "PLEX_TOKEN": "test-plex-token",
+    "JELLYFIN_URL": "http://jellyfin.test:8096",
+    "JELLYFIN_API_KEY": "test-jellyfin-key",
 }
 for _key, _val in _DUMMY_ENV.items():
     os.environ.setdefault(_key, _val)
