@@ -126,6 +126,11 @@ export default function Home() {
   const requestSeq = useRef(0)
 
   const activeFilterCount = countActiveFilters(filters)
+  // Everything hidden inside the collapsed panel: toolbar filters + genre +
+  // streaming. Surfaced on the Filters button so a closed panel never hides
+  // that filters are applied.
+  const panelFilterCount =
+    activeFilterCount + (selectedGenre ? 1 : 0) + (streaming !== 'all' ? 1 : 0)
 
   // Scroll active tab into view (mobile)
   useEffect(() => {
@@ -318,6 +323,13 @@ export default function Home() {
           >
             <Bookmark size={14} /> Watchlist {watchlist.length > 0 && `(${watchlist.length})`}
           </button>
+          <button
+            className={`tab filters-toggle ${panelFilterCount > 0 ? 'has-active' : ''}`}
+            onClick={() => setFiltersOpen(v => !v)}
+            aria-expanded={filtersOpen}
+          >
+            <SlidersHorizontal size={14} /> Filters{panelFilterCount > 0 ? ` · ${panelFilterCount}` : ''}
+          </button>
         </div>
       )}
 
@@ -335,7 +347,10 @@ export default function Home() {
         </div>
       )}
 
-      {!isSearching && !showWatchlist && (
+      {!isSearching && (
+      <div className={`filter-panel ${filtersOpen ? 'open' : ''}`}>
+      <div className="filter-panel-inner">
+      {!showWatchlist && (
         <div className="genre-scroll">
           <button
             className={`genre-btn ${!selectedGenre ? 'active' : ''}`}
@@ -378,19 +393,8 @@ export default function Home() {
         ))}
       </div>
 
-      {!isSearching && !showWatchlist && (
-        <>
-          <button
-            className="filter-mobile-toggle"
-            onClick={() => setFiltersOpen(v => !v)}
-            aria-expanded={filtersOpen}
-          >
-            <SlidersHorizontal size={14} /> Filters
-            {activeFilterCount > 0 && (
-              <span className="filter-mobile-count">{activeFilterCount}</span>
-            )}
-          </button>
-        <div className={`filter-toolbar ${filtersOpen ? 'open' : ''}`}>
+      {!showWatchlist && (
+        <div className="filter-toolbar">
           <div className="filter-group">
             <span className="filter-label"><SlidersHorizontal size={12} /> Sort</span>
             {SORT_OPTIONS.map(s => (
@@ -453,7 +457,9 @@ export default function Home() {
             </div>
           )}
         </div>
-        </>
+      )}
+      </div>
+      </div>
       )}
 
       <div className="movie-grid">
@@ -540,6 +546,33 @@ export default function Home() {
           font-weight: 700;
           box-shadow: 0 2px 16px var(--accent-glow);
         }
+        .filters-toggle {
+          border: 1px solid var(--border);
+          margin-left: 4px;
+        }
+        .filters-toggle:hover { color: var(--text); background: var(--surface); }
+        .filters-toggle[aria-expanded="true"] {
+          background: var(--surface2);
+          border-color: var(--border-strong);
+          color: var(--text);
+        }
+        .filters-toggle.has-active {
+          color: var(--accent-bright);
+          border-color: rgba(232, 160, 48, 0.5);
+          background: var(--accent-soft);
+          font-weight: 700;
+        }
+        /* Progressive disclosure: secondary filter rows live in a panel that
+           animates open via grid-template-rows (smooth height without
+           max-height hacks); collapsed contributes zero height. */
+        .filter-panel {
+          display: grid;
+          grid-template-rows: 0fr;
+          transition: grid-template-rows var(--dur-slow) var(--ease);
+        }
+        .filter-panel.open { grid-template-rows: 1fr; }
+        .filter-panel-inner { overflow: hidden; min-height: 0; }
+        .filter-panel.open .filter-panel-inner { padding-top: 4px; }
         .decade-row {
           display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
         }
@@ -678,30 +711,6 @@ export default function Home() {
         }
         .filter-clear:hover { border-color: var(--red); color: var(--red); }
 
-        .filter-mobile-toggle {
-          display: none;
-          align-items: center;
-          gap: 8px;
-          background: var(--bg-raised);
-          border: 1px solid var(--border);
-          color: var(--text);
-          padding: 8px 16px;
-          border-radius: 999px;
-          font-size: 13px;
-          font-weight: 500;
-          margin-bottom: 12px;
-          min-height: 40px;
-          transition: all var(--dur-fast) var(--ease);
-        }
-        .filter-mobile-toggle:hover { border-color: var(--accent-dim); color: var(--accent); }
-        .filter-mobile-count {
-          background: var(--accent);
-          color: #100a02;
-          font-size: 11px;
-          font-weight: 700;
-          padding: 1px 7px;
-          border-radius: 999px;
-        }
 
         @media (max-width: 768px) {
           .home { padding: 16px 14px; }
@@ -717,18 +726,14 @@ export default function Home() {
           .tabs::-webkit-scrollbar { display: none; }
           .tabs, .genre-scroll, .streaming-filters { overscroll-behavior-x: contain; }
           .tab { white-space: nowrap; font-size: 13px; padding: 10px 16px; min-height: 44px; }
-          .genre-scroll {
-            margin-left: -14px; margin-right: -14px;
-            padding-left: 14px; padding-right: 14px;
-          }
+          .genre-scroll { padding-right: 14px; }
           .genre-btn { padding: 8px 14px; font-size: 12px; min-height: 40px; }
           .decade-btn { min-height: 40px; padding: 8px 18px; }
           .streaming-filters {
             flex-wrap: nowrap;
             overflow-x: auto;
             scrollbar-width: none;
-            margin-left: -14px; margin-right: -14px;
-            padding: 0 14px 6px;
+            padding: 0 14px 6px 0;
           }
           .streaming-filters::-webkit-scrollbar { display: none; }
           .streaming-btn { white-space: nowrap; font-size: 12px; padding: 8px 14px; min-height: 40px; }
@@ -738,14 +743,13 @@ export default function Home() {
           .search-submit { min-height: 40px; }
           .watchlist-btn { width: 36px; height: 36px; bottom: 60px; }
 
-          .filter-mobile-toggle { display: inline-flex; min-height: 44px; }
           .filter-toolbar {
-            display: none;
             flex-direction: column;
             align-items: stretch;
             gap: 14px;
           }
-          .filter-toolbar.open { display: flex; }
+          .filter-panel { margin-left: -14px; margin-right: -14px; }
+          .filter-panel-inner { padding-left: 14px; padding-right: 14px; }
           .filter-group { flex-direction: row; flex-wrap: wrap; }
           .filter-actions { margin-left: 0; }
           .movie-grid {

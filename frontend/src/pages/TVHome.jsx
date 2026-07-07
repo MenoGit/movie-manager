@@ -103,6 +103,8 @@ export default function TVHome() {
   const requestSeq = useRef(0)
 
   const activeFilterCount = countActiveFilters(filters)
+  const panelFilterCount =
+    activeFilterCount + (selectedGenre ? 1 : 0) + (network !== 'all' ? 1 : 0)
 
   useEffect(() => { getTVGenres().then(r => setGenres(r.data)) }, [])
 
@@ -224,6 +226,13 @@ export default function TVHome() {
           <button className={`tab ${showWatchlist ? 'active' : ''}`} onClick={() => setShowWatchlist(v => !v)}>
             <Bookmark size={14} /> Watchlist {watchlist.length > 0 && `(${watchlist.length})`}
           </button>
+          <button
+            className={`tab filters-toggle ${panelFilterCount > 0 ? 'has-active' : ''}`}
+            onClick={() => setFiltersOpen(v => !v)}
+            aria-expanded={filtersOpen}
+          >
+            <SlidersHorizontal size={14} /> Filters{panelFilterCount > 0 ? ` · ${panelFilterCount}` : ''}
+          </button>
         </div>
       )}
 
@@ -235,7 +244,10 @@ export default function TVHome() {
         </div>
       )}
 
-      {!isSearching && !showWatchlist && (
+      {!isSearching && (
+      <div className={`filter-panel ${filtersOpen ? 'open' : ''}`}>
+      <div className="filter-panel-inner">
+      {!showWatchlist && (
         <div className="genre-scroll">
           <button className={`genre-btn ${!selectedGenre ? 'active' : ''}`} onClick={() => { setSelectedGenre(null); setSelectedDecade(null) }}>All Genres</button>
           {QUICK_GENRES.map(g => (
@@ -253,13 +265,8 @@ export default function TVHome() {
         ))}
       </div>
 
-      {!isSearching && !showWatchlist && (
-        <>
-          <button className="filter-mobile-toggle" onClick={() => setFiltersOpen(v => !v)} aria-expanded={filtersOpen}>
-            <SlidersHorizontal size={14} /> Filters
-            {activeFilterCount > 0 && <span className="filter-mobile-count">{activeFilterCount}</span>}
-          </button>
-          <div className={`filter-toolbar ${filtersOpen ? 'open' : ''}`}>
+      {!showWatchlist && (
+          <div className="filter-toolbar">
             <div className="filter-group">
               <span className="filter-label"><SlidersHorizontal size={12} /> Sort</span>
               {SORT_OPTIONS.map(s => (
@@ -285,7 +292,9 @@ export default function TVHome() {
               </div>
             )}
           </div>
-        </>
+      )}
+      </div>
+      </div>
       )}
 
       <div className="movie-grid">
@@ -350,8 +359,14 @@ export default function TVHome() {
         .filter-count { font-size: 11px; color: var(--accent); font-weight: 600; padding: 2px 8px; background: rgba(232,160,48,0.12); border: 1px solid rgba(232,160,48,0.4); border-radius: 10px; }
         .filter-clear { display: inline-flex; align-items: center; gap: 4px; background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 4px 10px; border-radius: 6px; font-size: 12px; }
         .filter-clear:hover { border-color: var(--red); color: var(--red); }
-        .filter-mobile-toggle { display: none; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; margin-bottom: 12px; min-height: 40px; }
-        .filter-mobile-count { background: var(--accent); color: #000; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 10px; }
+        .filters-toggle { border: 1px solid var(--border); margin-left: 4px; }
+        .filters-toggle:hover { color: var(--text); background: var(--surface); }
+        .filters-toggle[aria-expanded="true"] { background: var(--surface2); border-color: var(--border-strong); color: var(--text); }
+        .filters-toggle.has-active { color: var(--accent-bright); border-color: rgba(232,160,48,0.5); background: var(--accent-soft); font-weight: 700; }
+        .filter-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--dur-slow) var(--ease); }
+        .filter-panel.open { grid-template-rows: 1fr; }
+        .filter-panel-inner { overflow: hidden; min-height: 0; }
+        .filter-panel.open .filter-panel-inner { padding-top: 4px; }
         .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
         .movie-card-wrapper { position: relative; }
         .watchlist-btn { position: absolute; bottom: 48px; right: 8px; background: rgba(10,10,15,0.75); border: 1px solid var(--border); color: var(--text-muted); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
@@ -363,10 +378,10 @@ export default function TVHome() {
           .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 6px; margin: 0 -14px 16px; padding-left: 14px; padding-right: 14px; }
           .tabs::-webkit-scrollbar { display: none; }
           .tab { white-space: nowrap; font-size: 12px; padding: 8px 14px; min-height: 36px; }
-          .genre-scroll, .streaming-filters { margin: 0 -14px 12px; padding: 0 14px 6px; }
-          .filter-mobile-toggle { display: inline-flex; }
-          .filter-toolbar { display: none; flex-direction: column; align-items: stretch; gap: 14px; }
-          .filter-toolbar.open { display: flex; }
+          .genre-scroll, .streaming-filters { margin: 0 0 12px; padding: 0 14px 6px 0; }
+          .filter-panel { margin-left: -14px; margin-right: -14px; }
+          .filter-panel-inner { padding-left: 14px; padding-right: 14px; }
+          .filter-toolbar { flex-direction: column; align-items: stretch; gap: 14px; }
           .movie-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
         }
         @media (max-width: 480px) {
