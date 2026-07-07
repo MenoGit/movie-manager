@@ -1,6 +1,7 @@
 """Integration tests for services.plex library-index logic against a mocked
-Plex API, plus the router-level in_library annotation that consumes it.
-Every test uses clear_plex_cache — plex.py caches at module level for 5
+Plex API. (Routers no longer consume plex — see test_jellyfin_integration
+for the router-level annotation tests. This suite covers the plex client
+until the module is removed.) Every test uses clear_plex_cache — plex.py caches at module level for 5
 minutes, which would otherwise leak state across tests."""
 
 import asyncio
@@ -8,7 +9,6 @@ import asyncio
 import pytest
 
 from services import plex
-from routers.movies import _annotate
 
 
 def _sections(*dirs):
@@ -184,35 +184,3 @@ class TestTvEpisodes:
         first_count = len(mock_http.requests)
         assert asyncio.run(plex.get_tv_show_episodes("Ghost Show")) == {}
         assert len(mock_http.requests) == first_count
-
-
-# ─── Router-level in_library annotation ─────────────────────────────────────
-
-class TestAnnotate:
-    def _wire(self, mock_http, items):
-        mock_http.add("GET", "/library/sections/1/all", json=_metadata(items))
-        mock_http.add("GET", "/library/sections", json=_sections(_movie_section()))
-
-    def test_tmdb_id_match_authoritative(self, mock_http, clear_plex_cache):
-        self._wire(mock_http, [_item("The Matrix", tmdb_id=603)])
-        movies = asyncio.run(_annotate([
-            {"id": 603, "title": "The Matrix", "poster_path": "/m.jpg"},
-            {"id": 604, "title": "The Matrix Reloaded", "poster_path": None},
-        ]))
-        assert movies[0]["in_library"] is True
-        assert movies[1]["in_library"] is False
-        assert movies[0]["poster_url"] == "https://image.tmdb.org/t/p/w500/m.jpg"
-        assert movies[1]["poster_url"] is None
-
-    def test_same_title_does_not_false_flag_via_fallback(self, mock_http, clear_plex_cache):
-        # Library's "Heat" is TMDb-mapped (id 949, the 1995 film). The 1972
-        # "Heat" (different id) shares the title but must NOT match — mapped
-        # items are excluded from the fallback title set by design.
-        self._wire(mock_http, [_item("Heat", 1995, tmdb_id=949)])
-        movies = asyncio.run(_annotate([{"id": 28904, "title": "Heat"}]))
-        assert movies[0]["in_library"] is False
-
-    def test_fallback_title_match_for_unmapped_item(self, mock_http, clear_plex_cache):
-        self._wire(mock_http, [_item("The Home Movie")])  # no tmdb guid
-        movies = asyncio.run(_annotate([{"id": 1, "title": "Home Movie"}]))
-        assert movies[0]["in_library"] is True

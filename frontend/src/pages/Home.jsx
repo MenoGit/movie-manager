@@ -184,11 +184,11 @@ export default function Home() {
       if (seq !== requestSeq.current) return // a newer fetch superseded this one
       let data = r.data || []
       if (tab === 'recently_added' && !selectedGenre && !selectedDecade && streaming === 'all') {
-        // Plex shape, map to TMDb-ish
+        // Jellyfin shape (normalized by the backend), map to TMDb-ish
         data = data.map(p => ({
-          id: null,
+          id: p.tmdb_id,
           title: p.title,
-          poster_url: p.thumb ? `${import.meta.env.VITE_API_URL || ''}/plex-image${p.thumb}` : null,
+          poster_url: p.item_id ? `${import.meta.env.VITE_API_URL || ''}/downloads/poster/${p.item_id}` : null,
           vote_average: p.rating,
           release_date: p.year?.toString(),
           in_library: true,

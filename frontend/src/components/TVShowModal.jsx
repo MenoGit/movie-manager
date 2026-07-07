@@ -160,21 +160,21 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
                 {detail?.us_rating && <span className="tag">{detail.us_rating}</span>}
                 <span className="tag">★ {show.vote_average?.toFixed(1)}</span>
                 {show.in_library && (
-                  <span className={`tag ${detail?.plex_progress?.complete ? 'tag-green' : 'tag-accent'}`}>
+                  <span className={`tag ${detail?.library_progress?.complete ? 'tag-green' : 'tag-accent'}`}>
                     <Check size={12}/>
-                    {detail?.plex_progress?.complete
+                    {detail?.library_progress?.complete
                       ? 'Complete'
-                      : detail?.plex_progress
-                        ? `${detail.plex_progress.episodes_in_library_count}/${detail.plex_progress.total_episodes} eps`
+                      : detail?.library_progress
+                        ? `${detail.library_progress.episodes_in_library_count}/${detail.library_progress.total_episodes} eps`
                         : 'In Library'}
                   </span>
                 )}
               </div>
-              {detail?.plex_progress && detail.plex_progress.total_episodes > 0 && !detail.plex_progress.complete && (
-                <div className="plex-progress-bar" title={`${detail.plex_progress.episodes_in_library_count} of ${detail.plex_progress.total_episodes} episodes in Plex`}>
+              {detail?.library_progress && detail.library_progress.total_episodes > 0 && !detail.library_progress.complete && (
+                <div className="library-progress-bar" title={`${detail.library_progress.episodes_in_library_count} of ${detail.library_progress.total_episodes} episodes in library`}>
                   <div
-                    className="plex-progress-fill"
-                    style={{ width: `${Math.round(100 * detail.plex_progress.episodes_in_library_count / detail.plex_progress.total_episodes)}%` }}
+                    className="library-progress-fill"
+                    style={{ width: `${Math.round(100 * detail.library_progress.episodes_in_library_count / detail.library_progress.total_episodes)}%` }}
                   />
                 </div>
               )}
@@ -244,7 +244,7 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
               <div className="season-picker">
                 {realSeasons.map(s => {
                   const sn = s.season_number
-                  const progress = detail?.plex_progress
+                  const progress = detail?.library_progress
                   const isComplete = progress?.seasons_complete?.includes(sn)
                   const partial = progress?.seasons_partial?.[String(sn)]
                   return (
@@ -267,9 +267,9 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
                 <button className="download-season-btn" onClick={() => handleDownloadSeason(selectedSeason)}>
                   <Download size={14} /> Search Season {selectedSeason} torrents
                 </button>
-                {detail?.plex_episodes?.[String(selectedSeason)] && (
-                  <span className="plex-have">
-                    Plex already has {detail.plex_episodes[String(selectedSeason)].length} episode{detail.plex_episodes[String(selectedSeason)].length === 1 ? '' : 's'}
+                {detail?.library_episodes?.[String(selectedSeason)] && (
+                  <span className="library-have">
+                    Library already has {detail.library_episodes[String(selectedSeason)].length} episode{detail.library_episodes[String(selectedSeason)].length === 1 ? '' : 's'}
                   </span>
                 )}
               </div>
@@ -358,20 +358,20 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
 
               {done && (
                 <div className="success-banner">
-                  <Check size={16} /> {doneMsg} — Plex TV library will refresh when download finishes
+                  <Check size={16} /> {doneMsg} — Jellyfin TV library will refresh when download finishes
                 </div>
               )}
 
               {(() => {
                 const sn = scope.season ?? selectedSeason
-                const pp = detail?.plex_progress
-                const epPlex = scope.episode != null
-                  && (detail?.plex_episodes?.[String(sn)] || detail?.plex_episodes?.[sn] || []).includes(scope.episode)
-                if (epPlex) {
+                const pp = detail?.library_progress
+                const epInLibrary = scope.episode != null
+                  && (detail?.library_episodes?.[String(sn)] || detail?.library_episodes?.[sn] || []).includes(scope.episode)
+                if (epInLibrary) {
                   return (
                     <div className="dupe-warning">
                       <AlertTriangle size={16} className="dupe-warning-icon" />
-                      <span>S{sn}E{scope.episode} is already in your Plex library. Downloading will use additional storage.</span>
+                      <span>S{sn}E{scope.episode} is already in your Jellyfin library. Downloading will use additional storage.</span>
                     </div>
                   )
                 }
@@ -379,7 +379,7 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
                   return (
                     <div className="dupe-warning">
                       <AlertTriangle size={16} className="dupe-warning-icon" />
-                      <span>The full series is already in your Plex library.</span>
+                      <span>The full series is already in your Jellyfin library.</span>
                     </div>
                   )
                 }
@@ -387,7 +387,7 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
                   return (
                     <div className="dupe-warning">
                       <AlertTriangle size={16} className="dupe-warning-icon" />
-                      <span>All episodes from Season {sn} are already in your Plex library.</span>
+                      <span>All episodes from Season {sn} are already in your Jellyfin library.</span>
                     </div>
                   )
                 }
@@ -470,7 +470,7 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
           pack/episode tags, plus the intentional search-row override. */}
       <style>{`
         .tag-accent { background: rgba(232,160,48,0.15); border-color: var(--accent); color: var(--accent); }
-        .plex-progress-bar {
+        .library-progress-bar {
           width: 100%;
           max-width: 320px;
           height: 6px;
@@ -479,7 +479,7 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
           overflow: hidden;
           margin: 6px 0 10px;
         }
-        .plex-progress-fill {
+        .library-progress-fill {
           height: 100%;
           background: var(--accent);
           transition: width 0.4s ease;
@@ -497,7 +497,7 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
         .season-actions { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
         .download-season-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--accent); color: var(--accent); padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; }
         .download-season-btn:hover { background: var(--accent); color: #000; }
-        .plex-have { font-size: 12px; color: var(--green); }
+        .library-have { font-size: 12px; color: var(--green); }
         .no-seasons-fallback {
           padding: 24px 20px;
           background: var(--surface2);

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Check, Film, Sparkles } from 'lucide-react'
-import { isInTheaters, hasSpanish, plexProgressLabel } from '../utils'
+import { isInTheaters, hasSpanish, libraryProgressLabel } from '../utils'
 
 const STREAMING_LOGOS = {
   8: 'Netflix',
@@ -54,9 +54,9 @@ export default function MovieCard({ movie, onClick }) {
         <div className="movie-card-year">
           {movie.release_date?.split('-')[0]}
         </div>
-        {movie.in_library && movie.plex_progress && (
-          <div className={`movie-card-progress ${movie.plex_progress.complete ? 'complete' : ''}`}>
-            {plexProgressLabel(movie.plex_progress)}
+        {movie.in_library && movie.library_progress && (
+          <div className={`movie-card-progress ${movie.library_progress.complete ? 'complete' : ''}`}>
+            {libraryProgressLabel(movie.library_progress)}
           </div>
         )}
       </div>

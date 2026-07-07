@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Check, Film, Sparkles } from 'lucide-react'
-import { isInTheaters, hasSpanish, plexProgressLabel } from '../utils'
+import { isInTheaters, hasSpanish, libraryProgressLabel } from '../utils'
 
 /**
  * Horizontal carousel of movie cards.
@@ -351,9 +351,9 @@ function RowCard({ movie, rank, onClick }) {
             <span className="card-overlay-es" title="Originally Spanish-language film">ES</span>
           )}
         </div>
-        {movie.in_library && movie.plex_progress && (
-          <div className={`card-overlay-progress ${movie.plex_progress.complete ? 'complete' : ''}`}>
-            {plexProgressLabel(movie.plex_progress)}
+        {movie.in_library && movie.library_progress && (
+          <div className={`card-overlay-progress ${movie.library_progress.complete ? 'complete' : ''}`}>
+            {libraryProgressLabel(movie.library_progress)}
           </div>
         )}
       </div>

@@ -93,12 +93,12 @@ export function matchesPrefs(score, prefs) {
 }
 
 /**
- * Short card label for a TV show's Plex progress. Backend list endpoints
- * only ship seasons_in_library + episodes_in_library_count (cheap, Plex-only).
+ * Short card label for a TV show's library progress. Backend list endpoints
+ * only ship seasons_in_library + episodes_in_library_count (cheap).
  * Detail endpoints additionally have total_episodes, seasons_complete, complete —
  * those drive the modal's richer display.
  */
-export function plexProgressLabel(p) {
+export function libraryProgressLabel(p) {
   if (!p) return null
   if (p.complete) return '✓ Complete'
   const eps = p.episodes_in_library_count || 0

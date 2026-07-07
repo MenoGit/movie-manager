@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter
 from pydantic import BaseModel
-from services import prowlarr, qbittorrent, plex, history
+from services import prowlarr, qbittorrent, jellyfin, history
 
 router = APIRouter(prefix="/anime-downloads", tags=["anime-downloads"])
 
@@ -23,7 +23,7 @@ async def search_anime_torrents(q: str, season: Optional[int] = None,
 
 @router.post("/add")
 async def add_anime_torrent(req: AddAnimeTorrentRequest):
-    """Save under the TV-Shows path so Plex's TV agent picks it up; qBit
+    """Save under the TV-Shows path so the TV agent picks it up; qBit
     category is 'anime' so it queues separately from regular TV downloads."""
     return await qbittorrent.add_anime_torrent(req.magnet, req.show_title, req.season_number)
 
@@ -31,7 +31,7 @@ async def add_anime_torrent(req: AddAnimeTorrentRequest):
 @router.get("/queue")
 async def get_queue():
     """Active anime downloads (qBit category 'anime'). Auto-deletes finished
-    items, logs to history, and triggers a Plex TV-library refresh."""
+    items, logs to history, and triggers a Jellyfin TV-library refresh."""
     torrents = await qbittorrent.get_torrents(category="anime")
     completed_items = [
         t for t in torrents
@@ -48,9 +48,9 @@ async def get_queue():
         await qbittorrent.delete_torrent(t["hash"], delete_files=False)
     if completed:
         try:
-            await plex.refresh_tv_library()
+            await jellyfin.refresh_tv_library()
         except Exception as e:
-            print(f"plex TV refresh failed after anime auto-delete: {e}")
+            print(f"jellyfin TV refresh failed after anime auto-delete: {e}")
 
     return [
         {
@@ -75,7 +75,7 @@ async def delete_anime_torrent(torrent_hash: str):
     return {"status": "deleted"}
 
 
-@router.post("/plex-refresh")
-async def plex_refresh():
+@router.post("/refresh")
+async def library_refresh():
     """Anime goes into the TV library, so use the TV refresh."""
-    return await plex.refresh_tv_library()
+    return await jellyfin.refresh_tv_library()

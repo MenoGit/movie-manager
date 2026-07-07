@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { X, Search, Play, Check, AlertTriangle, Maximize2, Minimize2 } from 'lucide-react'
-import { getMovieDetail, searchTorrents, addTorrent, refreshPlex } from '../api'
+import { getMovieDetail, searchTorrents, addTorrent } from '../api'
 import AutoDownloadButton from './AutoDownloadButton'
 import TorrentDetailPanel from './TorrentDetailPanel'
 import { TorrentControls, TorrentList } from './TorrentList'
@@ -198,7 +198,7 @@ export default function MovieModal({ movie, onClose }) {
 
           {done && (
             <div className="success-banner">
-              <Check size={16} /> Added to qBittorrent — Plex will update when download finishes
+              <Check size={16} /> Added to qBittorrent — Jellyfin will update when download finishes
             </div>
           )}
 
@@ -206,7 +206,7 @@ export default function MovieModal({ movie, onClose }) {
             <div className="dupe-warning">
               <AlertTriangle size={16} className="dupe-warning-icon" />
               <span>
-                This movie is already in your Plex library. Downloading again will use
+                This movie is already in your Jellyfin library. Downloading again will use
                 additional storage.
               </span>
             </div>

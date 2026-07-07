@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Trash2, RefreshCw, Tv } from 'lucide-react'
-import { getTVQueue, deleteTVTorrent, refreshTVPlex } from '../api'
+import { getTVQueue, deleteTVTorrent, refreshTVLibrary } from '../api'
 import useCompletionNotifications from '../hooks/useCompletionNotifications'
 
 function formatSize(bytes) {
@@ -39,7 +39,7 @@ const STATE_LABELS = {
 
 export default function TVDownloadQueue() {
   const [queue, setQueue] = useState([])
-  const [plexMsg, setPlexMsg] = useState('')
+  const [refreshMsg, setRefreshMsg] = useState('')
   useCompletionNotifications(queue)
 
   useEffect(() => {
@@ -60,15 +60,15 @@ export default function TVDownloadQueue() {
     fetchAll()
   }
 
-  async function handlePlexRefresh() {
-    setPlexMsg('Refreshing...')
+  async function handleLibraryRefresh() {
+    setRefreshMsg('Refreshing...')
     try {
-      await refreshTVPlex()
-      setPlexMsg('Done!')
+      await refreshTVLibrary()
+      setRefreshMsg('Done!')
     } catch {
-      setPlexMsg('Error')
+      setRefreshMsg('Error')
     }
-    setTimeout(() => setPlexMsg(''), 3000)
+    setTimeout(() => setRefreshMsg(''), 3000)
   }
 
   return (
@@ -76,9 +76,9 @@ export default function TVDownloadQueue() {
       <div className="queue-header">
         <h3 className="section-title"><Tv size={16} style={{verticalAlign:'middle', marginRight:6}}/>TV Download Queue</h3>
         <div className="queue-actions">
-          <button className="plex-btn" onClick={handlePlexRefresh}>
+          <button className="refresh-btn" onClick={handleLibraryRefresh}>
             <RefreshCw size={14} />
-            {plexMsg || 'Refresh TV Library'}
+            {refreshMsg || 'Refresh TV Library'}
           </button>
         </div>
       </div>
@@ -130,14 +130,14 @@ export default function TVDownloadQueue() {
           margin-bottom: 16px;
         }
         .queue-actions { display: flex; align-items: center; gap: 12px; }
-        .plex-btn {
+        .refresh-btn {
           background: var(--surface2); border: 1px solid var(--border);
           color: var(--text);
           padding: 6px 14px; border-radius: 6px;
           font-size: 13px;
           display: flex; align-items: center; gap: 6px;
         }
-        .plex-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
         .queue-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 12px 0; }
         .queue-list { display: flex; flex-direction: column; gap: 12px; }
         .queue-item {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Trash2, RefreshCw } from 'lucide-react'
-import { getQueue, deleteTorrent, refreshPlex } from '../api'
+import { getQueue, deleteTorrent, refreshLibrary } from '../api'
 import useCompletionNotifications from '../hooks/useCompletionNotifications'
 import StorageBar from './StorageBar'
 
@@ -42,7 +42,7 @@ const STATE_LABELS = {
 
 export default function DownloadQueue() {
   const [queue, setQueue] = useState([])
-  const [plexMsg, setPlexMsg] = useState('')
+  const [refreshMsg, setRefreshMsg] = useState('')
   useCompletionNotifications(queue)
 
   useEffect(() => {
@@ -63,15 +63,15 @@ export default function DownloadQueue() {
     fetchAll()
   }
 
-  async function handlePlexRefresh() {
-    setPlexMsg('Refreshing...')
+  async function handleLibraryRefresh() {
+    setRefreshMsg('Refreshing...')
     try {
-      await refreshPlex()
-      setPlexMsg('Done!')
+      await refreshLibrary()
+      setRefreshMsg('Done!')
     } catch {
-      setPlexMsg('Error')
+      setRefreshMsg('Error')
     }
-    setTimeout(() => setPlexMsg(''), 3000)
+    setTimeout(() => setRefreshMsg(''), 3000)
   }
 
   return (
@@ -79,9 +79,9 @@ export default function DownloadQueue() {
       <div className="queue-header">
         <h3 className="section-title">Download Queue</h3>
         <div className="queue-actions">
-          <button className="plex-btn" onClick={handlePlexRefresh}>
+          <button className="refresh-btn" onClick={handleLibraryRefresh}>
             <RefreshCw size={14} />
-            {plexMsg || 'Refresh Plex'}
+            {refreshMsg || 'Refresh Library'}
           </button>
         </div>
       </div>
@@ -144,7 +144,7 @@ export default function DownloadQueue() {
           border: 1px solid var(--border);
           border-radius: 8px;
         }
-        .plex-btn {
+        .refresh-btn {
           background: var(--surface2);
           border: 1px solid var(--border);
           color: var(--text);
@@ -153,7 +153,7 @@ export default function DownloadQueue() {
           display: flex; align-items: center; gap: 6px;
           transition: border-color 0.2s;
         }
-        .plex-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
         .queue-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 12px 0; }
         .queue-list { display: flex; flex-direction: column; gap: 12px; }
         .queue-item {
@@ -216,7 +216,7 @@ export default function DownloadQueue() {
           }
           .queue-right { width: 100%; justify-content: space-between; }
           .queue-stats { gap: 10px; font-size: 10px; }
-          .plex-btn { font-size: 12px; }
+          .refresh-btn { font-size: 12px; }
         }
       `}</style>
     </div>

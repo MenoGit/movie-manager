@@ -1,6 +1,6 @@
 """Integration tests for the /downloads queue flow — the router logic that
-sits on top of qbittorrent/plex/history: completed torrents are logged to
-history, auto-deleted from qBit (keeping files), trigger a Plex refresh,
+sits on top of qbittorrent/jellyfin/history: completed torrents are logged to
+history, auto-deleted from qBit (keeping files), trigger a Jellyfin refresh,
 and are excluded from the queue response. HTTP is mocked end-to-end;
 history writes go to a per-test tmp file via HISTORY_PATH monkeypatching."""
 
@@ -34,15 +34,12 @@ def _wire_qbit(mock_http, torrents):
     mock_http.add("POST", "/api/v2/torrents/delete", text="")
 
 
-def _wire_plex_refresh(mock_http):
-    mock_http.add("GET", "/library/sections/1/refresh", json={})
-    mock_http.add("GET", "/library/sections", json={"MediaContainer": {"Directory": [
-        {"key": "1", "type": "movie", "title": "Movies"}]}})
+def _wire_jellyfin_refresh(mock_http):
+    mock_http.add("POST", "/Library/Refresh", status=204)
 
 
 class TestQueueFlow:
-    def test_in_progress_torrents_returned_with_shape(self, mock_http, tmp_history,
-                                                      clear_plex_cache):
+    def test_in_progress_torrents_returned_with_shape(self, mock_http, tmp_history):
         _wire_qbit(mock_http, [_torrent("Movie.2024.1080p", "aaa", 0.4321)])
         queue = asyncio.run(downloads.get_queue())
 
@@ -53,15 +50,14 @@ class TestQueueFlow:
             "downloaded": int(2_000_000_000 * 0.4321),
             "speed": 1_048_576, "eta": 3600, "seeds": 12,
         }]
-        # nothing deleted, no history, no plex refresh
+        # nothing deleted, no history, no library refresh
         assert mock_http.requests_to("/torrents/delete") == []
-        assert mock_http.requests_to("/refresh") == []
+        assert mock_http.requests_to("/Library/Refresh") == []
         assert not tmp_history.exists()
 
     def test_completed_torrent_logged_deleted_and_excluded(self, mock_http,
-                                                           tmp_history,
-                                                           clear_plex_cache):
-        _wire_plex_refresh(mock_http)
+                                                           tmp_history):
+        _wire_jellyfin_refresh(mock_http)
         _wire_qbit(mock_http, [
             _torrent("Done.Movie.2160p", "done1", 1.0, state="stalledUP"),
             _torrent("Still.Going", "going1", 0.5),
@@ -84,30 +80,28 @@ class TestQueueFlow:
         body = delete.content.decode()
         assert "hashes=done1" in body and "deleteFiles=false" in body
 
-        # plex refresh triggered exactly once
-        assert len(mock_http.requests_to("/sections/1/refresh")) == 1
+        # jellyfin refresh triggered exactly once
+        assert len(mock_http.requests_to("/Library/Refresh")) == 1
 
-    def test_uploading_state_counts_as_completed(self, mock_http, tmp_history,
-                                                 clear_plex_cache):
+    def test_uploading_state_counts_as_completed(self, mock_http, tmp_history):
         # state == "uploading" completes even if progress reads < 1.0
-        _wire_plex_refresh(mock_http)
+        _wire_jellyfin_refresh(mock_http)
         _wire_qbit(mock_http, [_torrent("Seeding.Now", "up1", 0.999, state="uploading")])
         queue = asyncio.run(downloads.get_queue())
         assert queue == []
         assert len(mock_http.requests_to("/torrents/delete")) == 1
 
-    def test_plex_refresh_failure_swallowed(self, mock_http, tmp_history,
-                                            clear_plex_cache):
-        # Plex being down must not break the queue response or the auto-delete
+    def test_jellyfin_refresh_failure_swallowed(self, mock_http, tmp_history):
+        # Jellyfin being down must not break the queue response or the auto-delete
         import httpx
-        mock_http.add("GET", "/library/sections", exc=httpx.ConnectError("plex down"))
+        mock_http.add("POST", "/Library/Refresh", exc=httpx.ConnectError("jellyfin down"))
         _wire_qbit(mock_http, [_torrent("Done", "d1", 1.0)])
         queue = asyncio.run(downloads.get_queue())
         assert queue == []
         assert len(mock_http.requests_to("/torrents/delete")) == 1
         assert json.loads(tmp_history.read_text())[0]["name"] == "Done"
 
-    def test_empty_queue(self, mock_http, tmp_history, clear_plex_cache):
+    def test_empty_queue(self, mock_http, tmp_history):
         _wire_qbit(mock_http, [])
         assert asyncio.run(downloads.get_queue()) == []
 
@@ -128,6 +122,22 @@ class TestOtherEndpoints:
             "irrelevant": "dropped"}})
         result = asyncio.run(downloads.storage_info())
         assert result == {"free_space": 123, "dl_speed": 456, "up_speed": 789}
+
+    def test_recently_added_delegates_to_jellyfin(self, mock_http):
+        mock_http.add("GET", "/Items", json={"Items": [
+            {"Name": "Heat", "ProductionYear": 1995, "Id": "j1",
+             "CommunityRating": 8.0, "ProviderIds": {"Tmdb": "949"}}]})
+        result = asyncio.run(downloads.recently_added())
+        assert result == [{"title": "Heat", "year": 1995, "rating": 8.0,
+                           "tmdb_id": 949, "item_id": "j1"}]
+
+    def test_poster_proxy_streams_bytes(self, mock_http):
+        mock_http.add("GET", "/Items/j1/Images/Primary", text="fakejpeg")
+        response = asyncio.run(downloads.poster("j1", w=250))
+        assert response.body == b"fakejpeg"
+        poster_req = mock_http.requests_to("/Images/Primary")[0]
+        assert poster_req.url.params["maxWidth"] == "250"
+        assert response.headers["cache-control"] == "public, max-age=3600"
 
     def test_history_roundtrip_newest_first(self, tmp_history):
         asyncio.run(history.append({"type": "movie", "name": "First"}))

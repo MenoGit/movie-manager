@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter
 from pydantic import BaseModel
-from services import prowlarr, qbittorrent, plex, history
+from services import prowlarr, qbittorrent, jellyfin, history
 
 router = APIRouter(prefix="/tv-downloads", tags=["tv-downloads"])
 
@@ -22,7 +22,7 @@ async def search_tv_torrents(q: str, season: Optional[int] = None,
 
 @router.post("/add")
 async def add_tv_torrent(req: AddTVTorrentRequest):
-    """Add a TV torrent to qBit. Save path follows Plex's TV layout:
+    """Add a TV torrent to qBit. Save path follows the standard TV layout:
     <TV_SHOWS_PATH>/<Show Name>/Season XX/"""
     return await qbittorrent.add_tv_torrent(req.magnet, req.show_title, req.season_number)
 
@@ -30,7 +30,7 @@ async def add_tv_torrent(req: AddTVTorrentRequest):
 @router.get("/queue")
 async def get_queue():
     """Active TV downloads. Auto-deletes completed torrents (keeping files
-    on disk) and triggers a Plex TV-library refresh when any complete."""
+    on disk) and triggers a Jellyfin TV-library refresh when any complete."""
     torrents = await qbittorrent.get_torrents(category="tv")
     completed_items = [
         t for t in torrents
@@ -47,9 +47,9 @@ async def get_queue():
         await qbittorrent.delete_torrent(t["hash"], delete_files=False)
     if completed:
         try:
-            await plex.refresh_tv_library()
+            await jellyfin.refresh_tv_library()
         except Exception as e:
-            print(f"plex TV refresh failed after auto-delete: {e}")
+            print(f"jellyfin TV refresh failed after auto-delete: {e}")
 
     return [
         {
@@ -75,7 +75,7 @@ async def delete_tv_torrent(torrent_hash: str):
     return {"status": "deleted"}
 
 
-@router.post("/plex-refresh")
-async def plex_refresh():
-    """Trigger a Plex TV library scan."""
-    return await plex.refresh_tv_library()
+@router.post("/refresh")
+async def library_refresh():
+    """Trigger a Jellyfin TV library scan."""
+    return await jellyfin.refresh_tv_library()

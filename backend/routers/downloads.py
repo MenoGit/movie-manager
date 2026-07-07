@@ -1,6 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 from pydantic import BaseModel
-from services import prowlarr, qbittorrent, plex, history, storage
+from services import prowlarr, qbittorrent, jellyfin, history, storage
 
 router = APIRouter(prefix="/downloads", tags=["downloads"])
 
@@ -23,7 +23,7 @@ async def add_torrent(req: AddTorrentRequest):
 @router.get("/queue")
 async def get_queue():
     """Get current download queue from qBit. Auto-deletes completed torrents
-    (keeping files on disk) and triggers a Plex refresh when any complete."""
+    (keeping files on disk) and triggers a Jellyfin refresh when any complete."""
     torrents = await qbittorrent.get_torrents()
     completed_items = [
         t for t in torrents
@@ -40,9 +40,9 @@ async def get_queue():
         await qbittorrent.delete_torrent(t["hash"], delete_files=False)
     if completed:
         try:
-            await plex.refresh_library()
+            await jellyfin.refresh_library()
         except Exception as e:
-            print(f"plex refresh failed after auto-delete: {e}")
+            print(f"jellyfin refresh failed after auto-delete: {e}")
 
     return [
         {
@@ -66,14 +66,14 @@ async def delete_torrent(torrent_hash: str):
     await qbittorrent.delete_torrent(torrent_hash, delete_files=False)
     return {"status": "deleted"}
 
-@router.post("/plex-refresh")
-async def plex_refresh():
-    """Trigger Plex library scan."""
-    return await plex.refresh_library()
+@router.post("/refresh")
+async def library_refresh():
+    """Trigger a Jellyfin library scan."""
+    return await jellyfin.refresh_library()
 
 @router.get("/disk-usage")
 async def disk_usage():
-    """Detailed disk usage for the Plex media drive: total/free/used plus
+    """Detailed disk usage for the media drive: total/free/used plus
     Movies and TV-Shows folder breakdowns."""
     return await storage.get_disk_usage()
 
@@ -89,9 +89,18 @@ async def storage_info():
         "up_speed": server.get("up_info_speed"),
     }
 
-@router.get("/plex/recently-added")
+@router.get("/recently-added")
 async def recently_added():
-    return await plex.get_recently_added()
+    return await jellyfin.get_recently_added()
+
+
+@router.get("/poster/{item_id}")
+async def poster(item_id: str, w: int = 400):
+    """Proxy a Jellyfin poster image so the browser never needs direct
+    Jellyfin access (or its API key)."""
+    content, content_type = await jellyfin.get_poster_image(item_id, max_width=w)
+    return Response(content=content, media_type=content_type,
+                    headers={"Cache-Control": "public, max-age=3600"})
 
 
 @router.get("/history")

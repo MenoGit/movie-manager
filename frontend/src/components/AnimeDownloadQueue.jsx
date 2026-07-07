@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Trash2, RefreshCw, Sparkles } from 'lucide-react'
-import { getAnimeQueue, deleteAnimeTorrent, refreshAnimePlex } from '../api'
+import { getAnimeQueue, deleteAnimeTorrent, refreshAnimeLibrary } from '../api'
 import useCompletionNotifications from '../hooks/useCompletionNotifications'
 
 function formatSize(bytes) {
@@ -35,7 +35,7 @@ const STATE_LABELS = {
 
 export default function AnimeDownloadQueue() {
   const [queue, setQueue] = useState([])
-  const [plexMsg, setPlexMsg] = useState('')
+  const [refreshMsg, setRefreshMsg] = useState('')
   useCompletionNotifications(queue)
 
   useEffect(() => {
@@ -50,10 +50,10 @@ export default function AnimeDownloadQueue() {
 
   async function handleDelete(hash) { await deleteAnimeTorrent(hash); fetchAll() }
 
-  async function handlePlexRefresh() {
-    setPlexMsg('Refreshing...')
-    try { await refreshAnimePlex(); setPlexMsg('Done!') } catch { setPlexMsg('Error') }
-    setTimeout(() => setPlexMsg(''), 3000)
+  async function handleLibraryRefresh() {
+    setRefreshMsg('Refreshing...')
+    try { await refreshAnimeLibrary(); setRefreshMsg('Done!') } catch { setRefreshMsg('Error') }
+    setTimeout(() => setRefreshMsg(''), 3000)
   }
 
   return (
@@ -64,9 +64,9 @@ export default function AnimeDownloadQueue() {
           Anime Download Queue
         </h3>
         <div className="queue-actions">
-          <button className="plex-btn" onClick={handlePlexRefresh}>
+          <button className="refresh-btn" onClick={handleLibraryRefresh}>
             <RefreshCw size={14} />
-            {plexMsg || 'Refresh TV Library'}
+            {refreshMsg || 'Refresh TV Library'}
           </button>
         </div>
       </div>
@@ -105,8 +105,8 @@ export default function AnimeDownloadQueue() {
         .queue-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 32px; }
         .queue-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .queue-actions { display: flex; align-items: center; gap: 12px; }
-        .plex-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 6px 14px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
-        .plex-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .refresh-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 6px 14px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+        .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
         .queue-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 12px 0; }
         .queue-list { display: flex; flex-direction: column; gap: 12px; }
         .queue-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }

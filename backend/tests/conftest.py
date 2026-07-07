@@ -96,6 +96,22 @@ def mock_http(monkeypatch):
 
 
 @pytest.fixture
+def clear_jellyfin_cache():
+    """Reset services.jellyfin module-level caches around a test so cached
+    data from one test never leaks into another."""
+    from services import jellyfin
+
+    def _reset():
+        jellyfin._LIBRARY_CACHE.update(data=None, ts=0)
+        jellyfin._TV_LIBRARY_CACHE.update(data=None, ts=0)
+        jellyfin._TV_EPISODES_CACHE.clear()
+
+    _reset()
+    yield
+    _reset()
+
+
+@pytest.fixture
 def clear_plex_cache():
     """Reset services.plex module-level caches around a test so cached data
     from one test never leaks into another."""

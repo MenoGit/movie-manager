@@ -14,7 +14,7 @@ from datetime import datetime, timezone, timedelta
 
 from services import (
     prowlarr, qbittorrent, scoring,
-    auto_watchlist, history, plex,
+    auto_watchlist, history, jellyfin,
     tmdb_tv,
 )
 
@@ -93,7 +93,7 @@ async def _check_movie(item: dict) -> dict | None:
 
 
 async def _check_tv(item: dict) -> dict | None:
-    """For TV: figure out missing seasons (TMDb total vs Plex have-list),
+    """For TV: figure out missing seasons (TMDb total vs library have-list),
     pick the lowest missing season number, search for a pack of that season,
     return best eligible pack."""
     tv_id = item.get("id")
@@ -103,14 +103,14 @@ async def _check_tv(item: dict) -> dict | None:
     except Exception:
         return None
 
-    plex_eps = await plex.get_tv_show_episodes(title, tmdb_id=tv_id)
+    lib_eps = await jellyfin.get_tv_show_episodes(title, tmdb_id=tv_id)
     target_season = None
     for s in (detail.get("seasons") or []):
         sn = s.get("season_number")
         ep_count = s.get("episode_count") or 0
         if sn is None or sn <= 0 or ep_count == 0:
             continue
-        have = plex_eps.get(sn) or plex_eps.get(str(sn)) or []
+        have = lib_eps.get(sn) or lib_eps.get(str(sn)) or []
         if len(have) < ep_count:
             target_season = sn
             break

@@ -130,7 +130,7 @@ export const addAnimeTorrent = (magnet, show_title, season_number) =>
   api.post('/anime-downloads/add', { magnet, show_title, season_number })
 export const getAnimeQueue = () => api.get('/anime-downloads/queue')
 export const deleteAnimeTorrent = (hash) => api.delete(`/anime-downloads/${hash}`)
-export const refreshAnimePlex = () => api.post('/anime-downloads/plex-refresh')
+export const refreshAnimeLibrary = () => api.post('/anime-downloads/refresh')
 
 // TV downloads
 export const searchTVTorrents = (q, season, episode, year) =>
@@ -144,7 +144,7 @@ export const addTVTorrent = (magnet, show_title, season_number) =>
   api.post('/tv-downloads/add', { magnet, show_title, season_number })
 export const getTVQueue = () => api.get('/tv-downloads/queue')
 export const deleteTVTorrent = (hash) => api.delete(`/tv-downloads/${hash}`)
-export const refreshTVPlex = () => api.post('/tv-downloads/plex-refresh')
+export const refreshTVLibrary = () => api.post('/tv-downloads/refresh')
 
 // Downloads
 export const searchTorrents = (q, year) =>
@@ -152,7 +152,7 @@ export const searchTorrents = (q, year) =>
 export const addTorrent = (magnet, movie_title) => api.post('/downloads/add', { magnet, movie_title })
 export const getQueue = () => api.get('/downloads/queue')
 export const deleteTorrent = (hash) => api.delete(`/downloads/${hash}`)
-export const refreshPlex = () => api.post('/downloads/plex-refresh')
+export const refreshLibrary = () => api.post('/downloads/refresh')
 export const getStorage = () => api.get('/downloads/storage')
 export const getDiskUsage = () => api.get('/downloads/disk-usage')
 
@@ -165,6 +165,6 @@ export const patchAutoWatchlist = (type, id, patch) =>
   api.patch(`/watchlist/auto/${type}/${id}`, patch)
 export const triggerAutoWatchlistCheck = () =>
   api.post('/watchlist/auto/check-now')
-export const getRecentlyAdded = () => api.get('/downloads/plex/recently-added')
+export const getRecentlyAdded = () => api.get('/downloads/recently-added')
 export const getDownloadHistory = () => api.get('/downloads/history')
 export const clearDownloadHistory = () => api.delete('/downloads/history')
