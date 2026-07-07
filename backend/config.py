@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     plex_token: str
     jellyfin_url: str
     jellyfin_api_key: str
+    # Active library provider: "jellyfin" (default) or "plex".
+    library_provider: str = "jellyfin"
     movies_path: str = "/mnt/media/movies"
     tv_shows_path: str = "/mnt/media/tv-shows"
 

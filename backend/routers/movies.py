@@ -1,23 +1,23 @@
 import random
 from typing import Optional
 from fastapi import APIRouter, Query
-from services import tmdb, jellyfin
+from services import tmdb, library
 
 router = APIRouter(prefix="/movies", tags=["movies"])
 
 
 async def _annotate(movies):
     """Annotate each movie with in_library + poster_url. TMDb ID match is
-    authoritative for Jellyfin-mapped library items; normalized-title fallback
-    only catches the small set of library items Jellyfin couldn't map to a TMDb id."""
-    index = await jellyfin.get_library_index()
+    authoritative for provider-mapped library items; normalized-title fallback
+    only catches the small set of library items the provider couldn't map to a TMDb id."""
+    index = await library.get_library_index()
     tmdb_ids = index["tmdb_ids"]
     fallback_titles = index["fallback_titles"]
     for m in movies:
         mid = m.get("id")
         in_lib = bool(mid and mid in tmdb_ids)
         if not in_lib and fallback_titles:
-            in_lib = jellyfin.normalize_title(m.get("title", "")) in fallback_titles
+            in_lib = library.normalize_title(m.get("title", "")) in fallback_titles
         m["in_library"] = in_lib
         m["poster_url"] = tmdb.poster_url(m.get("poster_path"))
     return movies
@@ -237,7 +237,7 @@ async def recommendations(movie_id: int, page: int = 1):
 async def because_you_downloaded(count: int = 3):
     """Pick N random library movies (with TMDb ids) and return each with its
     recommendations. Frontend renders one row per seed."""
-    library = await jellyfin.get_library_items_with_tmdb()
+    library = await library.get_library_items_with_tmdb()
     pool = [m for m in library if m.get("tmdb_id")]
     if not pool:
         return []
@@ -257,10 +257,10 @@ async def search(q: str = Query(..., min_length=1)):
 @router.get("/{movie_id}")
 async def movie_detail(movie_id: int):
     detail = await tmdb.get_movie_detail(movie_id)
-    index = await jellyfin.get_library_index()
+    index = await library.get_library_index()
     in_lib = movie_id in index["tmdb_ids"]
     if not in_lib and index["fallback_titles"]:
-        in_lib = jellyfin.normalize_title(detail.get("title", "")) in index["fallback_titles"]
+        in_lib = library.normalize_title(detail.get("title", "")) in index["fallback_titles"]
     detail["in_library"] = in_lib
     detail["poster_url"] = tmdb.poster_url(detail.get("poster_path"))
     return detail

@@ -1,6 +1,6 @@
 import asyncio
 from fastapi import APIRouter, Query
-from services import tmdb_tv, jellyfin
+from services import tmdb_tv, library
 
 router = APIRouter(prefix="/tv", tags=["tv"])
 
@@ -8,7 +8,7 @@ router = APIRouter(prefix="/tv", tags=["tv"])
 async def _summary_progress(show_name: str, tmdb_id: int | None = None) -> dict | None:
     """Cheap shape for list cards: seasons present + episode count, derived
     entirely from cached library data (no TMDb call)."""
-    eps = await jellyfin.get_tv_show_episodes(show_name, tmdb_id=tmdb_id)
+    eps = await library.get_tv_show_episodes(show_name, tmdb_id=tmdb_id)
     if not eps:
         return None
     seasons = sorted(int(s) for s in eps.keys())
@@ -55,7 +55,7 @@ def _compute_full_progress(detail: dict, lib_eps: dict) -> dict:
 async def _annotate(shows):
     """Stamp each show with in_library + poster_url. For in-library shows,
     also attach a cheap library_progress with what's in the library (no TMDb call)."""
-    index = await jellyfin.get_tv_library_index()
+    index = await library.get_tv_library_index()
     tmdb_ids = index["tmdb_ids"]
     fallback_titles = index["fallback_titles"]
 
@@ -63,7 +63,7 @@ async def _annotate(shows):
         sid = s.get("id")
         in_lib = bool(sid and sid in tmdb_ids)
         if not in_lib and fallback_titles:
-            in_lib = jellyfin.normalize_title(s.get("name", "")) in fallback_titles
+            in_lib = library.normalize_title(s.get("name", "")) in fallback_titles
         s["in_library"] = in_lib
         s["poster_url"] = tmdb_tv.poster_url(s.get("poster_path"))
 
@@ -143,7 +143,7 @@ async def tv_season(tv_id: int, season_number: int):
     """Episode list for a season + which of those episodes the user already has in the library."""
     season = await tmdb_tv.get_tv_season(tv_id, season_number)
     show_detail = await tmdb_tv.get_tv_detail(tv_id)
-    have_map = await jellyfin.get_tv_show_episodes(show_detail.get("name", ""), tmdb_id=tv_id)
+    have_map = await library.get_tv_show_episodes(show_detail.get("name", ""), tmdb_id=tv_id)
     have_eps = set(have_map.get(season_number, []))
     for ep in season.get("episodes", []):
         ep["in_library"] = ep.get("episode_number") in have_eps
@@ -154,14 +154,14 @@ async def tv_season(tv_id: int, season_number: int):
 @router.get("/{tv_id}")
 async def tv_detail(tv_id: int):
     detail = await tmdb_tv.get_tv_detail(tv_id)
-    index = await jellyfin.get_tv_library_index()
+    index = await library.get_tv_library_index()
     in_lib = tv_id in index["tmdb_ids"]
     if not in_lib and index["fallback_titles"]:
-        in_lib = jellyfin.normalize_title(detail.get("name", "")) in index["fallback_titles"]
+        in_lib = library.normalize_title(detail.get("name", "")) in index["fallback_titles"]
     detail["in_library"] = in_lib
     detail["poster_url"] = tmdb_tv.poster_url(detail.get("poster_path"))
     if in_lib:
-        lib_eps = await jellyfin.get_tv_show_episodes(detail.get("name", ""), tmdb_id=tv_id)
+        lib_eps = await library.get_tv_show_episodes(detail.get("name", ""), tmdb_id=tv_id)
         detail["library_episodes"] = lib_eps
         detail["library_progress"] = _compute_full_progress(detail, lib_eps)
     return detail

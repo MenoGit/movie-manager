@@ -1,6 +1,6 @@
 # FilmVault 🎬
 
-A self-hosted movie manager that connects TMDb, Prowlarr, qBittorrent, and Plex into one clean dark UI.
+A self-hosted movie manager that connects TMDb, Prowlarr, qBittorrent, and Jellyfin (or Plex) into one clean dark UI.
 
 ## Setup
 
@@ -13,7 +13,7 @@ nano .env
 You'll need:
 - **TMDb API key** — free at https://www.themoviedb.org/settings/api
 - **qBittorrent** — your existing setup, just need URL + credentials
-- **Plex token** — In Plex, go to Settings > Troubleshooting > "Get an X-Plex-Token"
+- **Jellyfin API key** — Jellyfin Dashboard > API Keys > + (Plex token optional; see Library server below)
 - **Prowlarr API key** — generated after first boot (see step 3)
 
 ### 2. Start Prowlarr first to get the API key
@@ -37,18 +37,37 @@ App runs at **http://localhost:3000**
 TMDb API          → movie metadata, posters, streaming info
 Prowlarr          → searches your configured torrent indexers  
 qBittorrent       → handles actual downloads
-Plex              → library management + auto-refresh
+Jellyfin          → library management + auto-refresh (Plex available as fallback)
 ```
+
+## Library server
+
+**Jellyfin is the primary library provider** — it powers the "In Library" badges,
+TV episode progress, the recently-added row, and the post-download refresh.
+Plex support is kept fully intact as a secondary.
+
+All provider access goes through `backend/services/library.py`, which binds
+`services/jellyfin.py` or `services/plex.py` based on one setting:
+
+```bash
+# .env — omit entirely for the default (jellyfin)
+LIBRARY_PROVIDER=plex
+```
+
+Then restart the backend: `docker compose up -d backend`. Both providers'
+credentials stay configured in `.env` (`JELLYFIN_URL`/`JELLYFIN_API_KEY`,
+`PLEX_URL`/`PLEX_TOKEN`); only the selected one is contacted. An invalid
+value fails at startup with a clear error.
 
 ## Features
 - Trending / Top Rated / Now Playing / Genre browsing
 - Streaming service filter (Netflix, Disney+, Prime, etc.)
-- "In Library" badge cross-referenced with your Plex library
+- "In Library" badge cross-referenced with your media library
 - Click movie → torrent list with seeders, size, source
 - Edit search query before downloading
 - Download queue with live progress
 - Storage meter
-- Manual Plex refresh button
+- Manual library refresh button
 - Watchlist (saved locally)
 - Movie detail with trailer link, cast, streaming services
 
@@ -75,12 +94,12 @@ One command runs everything — backend pytest on the host, frontend vitest insi
 ./run-tests.sh --frontend  # frontend only (needs: docker compose up -d frontend)
 ```
 
-Backend deps live in the gitignored `.pytest-deps/` (no venv needed); the script bootstraps it automatically on first run. The suite makes **no network calls** — external services (Prowlarr, qBittorrent, TMDb, Plex) are mocked at the httpx transport layer via the `mock_http` fixture in `backend/tests/conftest.py`.
+Backend deps live in the gitignored `.pytest-deps/` (no venv needed); the script bootstraps it automatically on first run. The suite makes **no network calls** — external services (Prowlarr, qBittorrent, TMDb, Jellyfin, Plex) are mocked at the httpx transport layer via the `mock_http` fixture in `backend/tests/conftest.py`.
 
 What's covered:
 
 - `backend/tests/test_scoring.py`, `test_prowlarr.py` — pure logic: release parsing, torrent scoring/tiers, year bucketing, episode matching
-- `backend/tests/test_*_integration.py` — service + router flows against mocked HTTP: Prowlarr search strategies, qBittorrent login/add/queue, TMDb detail + theatrical-only heuristic, Plex library index, download-queue auto-completion
+- `backend/tests/test_*_integration.py` — service + router flows against mocked HTTP: Prowlarr search strategies, qBittorrent login/add/queue, TMDb detail + theatrical-only heuristic, Jellyfin/Plex library index + provider facade, download-queue auto-completion
 - `frontend/src/test/*.test.js` — vitest for the JS scoring/display helpers
 - **Parity contract**: `frontend/src/test/parity-cases.json` is asserted by both `backend/tests/test_parity.py` and `torrentScoring.parity.test.js` so the Python and JS scorers can't drift apart. Regenerate it deliberately — never edit one side to make a test pass.
 

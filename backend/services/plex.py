@@ -107,7 +107,9 @@ async def get_library_items_with_tmdb() -> list[dict]:
     return out
 
 async def get_recently_added(limit: int = 10) -> list:
-    """Get recently added movies from Plex."""
+    """Most recently added movies, normalized to the provider-neutral shape
+    (title/year/rating/tmdb_id/item_id) that services.jellyfin also returns.
+    item_id is the Plex ratingKey, which feeds get_poster_image()."""
     key = await get_movies_section_key()
     if not key:
         return []
@@ -115,10 +117,52 @@ async def get_recently_added(limit: int = 10) -> list:
         r = await client.get(
             f"{BASE}/library/sections/{key}/recentlyAdded",
             headers=HEADERS,
-            params={"X-Plex-Container-Size": limit}
+            params={"X-Plex-Container-Size": limit, "includeGuids": 1},
         )
         r.raise_for_status()
-        return r.json()["MediaContainer"].get("Metadata", [])
+        # Plex ignores X-Plex-Container-Size when sent as a plain query param
+        # (it wants the paging headers), so enforce the limit ourselves.
+        items = r.json()["MediaContainer"].get("Metadata", [])[:limit]
+
+    out = []
+    for it in items:
+        tmdb_id = None
+        for g in it.get("Guid") or []:
+            gid = g.get("id", "")
+            if gid.startswith("tmdb://"):
+                try:
+                    tmdb_id = int(gid.replace("tmdb://", ""))
+                    break
+                except ValueError:
+                    pass
+        out.append({
+            "title": it.get("title", ""),
+            "year": it.get("year"),
+            "rating": it.get("rating"),
+            "tmdb_id": tmdb_id,
+            "item_id": it.get("ratingKey"),
+        })
+    return out
+
+
+async def get_poster_image(item_id: str, max_width: int = 400) -> tuple[bytes, str]:
+    """Fetch an item's poster via Plex's photo transcoder. Returns
+    (bytes, content_type). Same signature as the Jellyfin provider's, so the
+    backend image-proxy route works with either."""
+    async with httpx.AsyncClient() as client:
+        r = await client.get(
+            f"{BASE}/photo/:/transcode",
+            headers=HEADERS,
+            params={
+                "url": f"/library/metadata/{item_id}/thumb",
+                "width": max_width,
+                "height": max_width * 3 // 2,  # poster aspect
+                "minSize": 1,
+            },
+            timeout=10,
+        )
+        r.raise_for_status()
+        return r.content, r.headers.get("content-type", "image/jpeg")
 
 
 # ─── TV library ───────────────────────────────────────────────────────────────

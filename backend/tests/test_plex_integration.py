@@ -122,6 +122,44 @@ class TestLibraryIndex:
         assert "matrix" not in index["fallback_titles"]
 
 
+# ─── Recently added + poster (provider-neutral shape) ───────────────────────
+
+class TestRecentlyAddedAndPoster:
+    def test_recently_added_normalized_shape(self, mock_http, clear_plex_cache):
+        item = _item("Inside Out 2", 2024, tmdb_id=1022789, rating_key="900")
+        item["rating"] = 7.6
+        mock_http.add("GET", "/recentlyAdded", json=_metadata([item]))
+        mock_http.add("GET", "/library/sections", json=_sections(_movie_section()))
+        recent = asyncio.run(plex.get_recently_added(limit=5))
+
+        req = mock_http.requests_to("/recentlyAdded")[0]
+        assert req.url.params["X-Plex-Container-Size"] == "5"
+        assert req.url.params["includeGuids"] == "1"
+        assert recent == [{"title": "Inside Out 2", "year": 2024, "rating": 7.6,
+                           "tmdb_id": 1022789, "item_id": "900"}]
+
+    def test_recently_added_no_section(self, mock_http, clear_plex_cache):
+        mock_http.add("GET", "/library/sections", json=_sections())
+        assert asyncio.run(plex.get_recently_added()) == []
+
+    def test_limit_enforced_client_side(self, mock_http, clear_plex_cache):
+        # Plex ignores X-Plex-Container-Size as a query param and returns the
+        # whole recently-added window; the provider must truncate to `limit`.
+        items = [_item(f"Movie {i}", rating_key=str(i)) for i in range(30)]
+        mock_http.add("GET", "/recentlyAdded", json=_metadata(items))
+        mock_http.add("GET", "/library/sections", json=_sections(_movie_section()))
+        recent = asyncio.run(plex.get_recently_added(limit=3))
+        assert [r["title"] for r in recent] == ["Movie 0", "Movie 1", "Movie 2"]
+
+    def test_poster_image_via_transcoder(self, mock_http, clear_plex_cache):
+        mock_http.add("GET", "/photo/:/transcode", text="fakejpeg")
+        content, ctype = asyncio.run(plex.get_poster_image("900", max_width=300))
+        assert content == b"fakejpeg"
+        req = mock_http.requests_to("/photo")[0]
+        assert req.url.params["url"] == "/library/metadata/900/thumb"
+        assert req.url.params["width"] == "300"
+
+
 # ─── normalize_title (pure) ─────────────────────────────────────────────────
 
 class TestNormalizeTitle:

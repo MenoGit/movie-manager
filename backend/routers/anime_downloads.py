@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter
 from pydantic import BaseModel
-from services import prowlarr, qbittorrent, jellyfin, history
+from services import prowlarr, qbittorrent, library, history
 
 router = APIRouter(prefix="/anime-downloads", tags=["anime-downloads"])
 
@@ -31,7 +31,7 @@ async def add_anime_torrent(req: AddAnimeTorrentRequest):
 @router.get("/queue")
 async def get_queue():
     """Active anime downloads (qBit category 'anime'). Auto-deletes finished
-    items, logs to history, and triggers a Jellyfin TV-library refresh."""
+    items, logs to history, and triggers a TV-library refresh."""
     torrents = await qbittorrent.get_torrents(category="anime")
     completed_items = [
         t for t in torrents
@@ -48,9 +48,9 @@ async def get_queue():
         await qbittorrent.delete_torrent(t["hash"], delete_files=False)
     if completed:
         try:
-            await jellyfin.refresh_tv_library()
+            await library.refresh_tv_library()
         except Exception as e:
-            print(f"jellyfin TV refresh failed after anime auto-delete: {e}")
+            print(f"library TV refresh failed after anime auto-delete: {e}")
 
     return [
         {
@@ -78,4 +78,4 @@ async def delete_anime_torrent(torrent_hash: str):
 @router.post("/refresh")
 async def library_refresh():
     """Anime goes into the TV library, so use the TV refresh."""
-    return await jellyfin.refresh_tv_library()
+    return await library.refresh_tv_library()

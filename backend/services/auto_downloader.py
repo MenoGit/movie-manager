@@ -14,7 +14,7 @@ from datetime import datetime, timezone, timedelta
 
 from services import (
     prowlarr, qbittorrent, scoring,
-    auto_watchlist, history, jellyfin,
+    auto_watchlist, history, library,
     tmdb_tv,
 )
 
@@ -103,7 +103,7 @@ async def _check_tv(item: dict) -> dict | None:
     except Exception:
         return None
 
-    lib_eps = await jellyfin.get_tv_show_episodes(title, tmdb_id=tv_id)
+    lib_eps = await library.get_tv_show_episodes(title, tmdb_id=tv_id)
     target_season = None
     for s in (detail.get("seasons") or []):
         sn = s.get("season_number")
