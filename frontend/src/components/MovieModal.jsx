@@ -5,6 +5,7 @@ import AutoDownloadButton from './AutoDownloadButton'
 import TorrentDetailPanel from './TorrentDetailPanel'
 import { TorrentControls, TorrentList } from './TorrentList'
 import useTorrentView from '../useTorrentView'
+import useSheetDrag from '../useSheetDrag'
 import './torrentModal.css'
 
 // Backend tags each torrent with _match: year_match | no_year | other_year.
@@ -90,10 +91,12 @@ export default function MovieModal({ movie, onClose }) {
 
   const year = movie.release_date?.split('-')[0]
   const trailer = detail?.trailer
+  const { sheetRef, backdropRef } = useSheetDrag(onClose)
 
   return (
-    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${expanded ? 'modal-expanded' : ''}`}>
+    <div className="modal-backdrop" ref={backdropRef} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className={`modal ${expanded ? 'modal-expanded' : ''}`} ref={sheetRef}>
+        <div className="sheet-grip" aria-hidden="true"><span /></div>
         <button
           className="modal-expand"
           onClick={() => setExpanded(v => !v)}

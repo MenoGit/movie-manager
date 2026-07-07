@@ -17,6 +17,7 @@ import TorrentDetailPanel from './TorrentDetailPanel'
 import { TorrentControls, TorrentList } from './TorrentList'
 import { isSeasonPack } from '../torrentScoring'
 import useTorrentView from '../useTorrentView'
+import useSheetDrag from '../useSheetDrag'
 import './torrentModal.css'
 
 export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePathLabel = 'TV-Shows' }) {
@@ -139,9 +140,12 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
     : `Season ${scope.season} · Episode ${scope.episode}`
   const savePathHint = `/${savePathLabel}/${show.title}/Season ${String(scope.season ?? selectedSeason).padStart(2, '0')}/`
 
+  const { sheetRef, backdropRef } = useSheetDrag(onClose)
+
   return (
-    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${expanded ? 'modal-expanded' : ''}`}>
+    <div className="modal-backdrop" ref={backdropRef} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className={`modal ${expanded ? 'modal-expanded' : ''}`} ref={sheetRef}>
+        <div className="sheet-grip" aria-hidden="true"><span /></div>
         <button className="modal-expand" onClick={() => setExpanded(v => !v)} title={expanded ? 'Compact view' : 'Expand modal'}>
           {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
         </button>

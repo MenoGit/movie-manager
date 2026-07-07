@@ -6,10 +6,12 @@
 
 .modal-backdrop {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.85);
+  /* --sheet-dim is driven by the mobile drag-to-dismiss gesture (1 → 0) */
+  background: rgba(0, 0, 0, calc(0.85 * var(--sheet-dim, 1)));
   display: flex; align-items: center; justify-content: center;
   z-index: 100; padding: 20px;
 }
+.sheet-grip { display: none; }
 .modal {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -468,40 +470,117 @@
 .download-btn:hover { background: #f0b040; }
 .download-btn:disabled { opacity: 0.5; cursor: wait; }
 
+/* ── Mobile: bottom sheet ─────────────────────────────────────────────────
+   The modal becomes a sheet that slides up from the bottom, dismissable by
+   dragging down (useSheetDrag writes the transform during the gesture) or
+   via the close button / backdrop tap. Cinematic vertical hero: edge-to-edge
+   backdrop, bottom-to-top scrim into the sheet surface, poster + title
+   layered at the bottom of the image. */
+@keyframes sheet-in {
+  from { transform: translate3d(0, 100%, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @media (max-width: 768px) {
-  .modal-backdrop { padding: 0; }
+  .modal-backdrop {
+    padding: 0;
+    align-items: flex-end;
+    animation: backdrop-in 240ms ease-out;
+  }
   .modal {
-    border-radius: 0;
     border: none;
+    border-top: 1px solid var(--border-strong);
+    border-radius: 22px 22px 0 0;
     max-width: 100%;
-    max-height: 100vh;
-    height: 100vh;
     width: 100vw;
+    height: auto;
+    max-height: 93vh;
+    max-height: 93dvh;
+    min-height: 55vh;
     overflow-x: hidden;
+    overscroll-behavior: contain;
+    animation: sheet-in 420ms var(--ease);
+    will-change: transform;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+    box-shadow: 0 -12px 60px rgba(0, 0, 0, 0.7);
   }
   .modal-expanded { max-width: 100%; }
   .modal-expand { display: none; }
+  .sheet-grip {
+    display: flex;
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 30px;
+    align-items: center;
+    justify-content: center;
+    z-index: 12;
+    pointer-events: none;
+  }
+  .sheet-grip span {
+    width: 42px; height: 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  }
   .modal-close {
-    position: fixed;
-    top: max(14px, env(safe-area-inset-top));
-    right: 14px;
+    /* Sticky (not fixed — the sheet's transform would re-anchor fixed
+       elements) so it stays reachable while the sheet content scrolls.
+       The negative margin collapses its flow slot so the hero still
+       starts at the very top of the sheet. */
+    position: sticky;
+    top: 12px;
+    margin-left: auto;
+    margin-bottom: -44px;
+    transform: translateX(-12px);
     width: 44px; height: 44px;
+    background: rgba(7, 7, 11, 0.55);
+    backdrop-filter: blur(8px);
     z-index: 11;
   }
-  .modal-hero-content {
+  .modal-hero {
+    border-radius: 22px 22px 0 0;
+    display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 24px 16px;
-    padding-top: max(56px, calc(env(safe-area-inset-top) + 56px));
+    justify-content: flex-end;
+    min-height: 46vh;
+    min-height: 46dvh;
   }
-  .modal-hero { border-radius: 0; }
+  .modal-hero-overlay {
+    background: linear-gradient(
+      to top,
+      var(--surface) 0%,
+      rgba(18, 18, 27, 0.78) 34%,
+      rgba(18, 18, 27, 0.3) 62%,
+      rgba(18, 18, 27, 0.05) 100%
+    );
+  }
+  .modal-hero-content {
+    flex-direction: row;
+    align-items: flex-end;
+    text-align: left;
+    gap: 14px;
+    padding: 18px 18px 14px;
+  }
+  .modal-poster {
+    width: 96px; min-width: 96px;
+    margin: 0;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  }
+  .modal-title {
+    font-size: clamp(26px, 7.5vw, 34px);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  }
+  .modal-overview { -webkit-line-clamp: 3; font-size: 13px; }
   .trailer-embed { margin: 0 0 16px; border-radius: 0; border-left: 0; border-right: 0; }
-  .trailer-close { top: max(8px, env(safe-area-inset-top)); }
-  .modal-poster { width: 140px; min-width: 0; margin: 0 auto; }
-  .modal-title { font-size: 1.5rem; }
-  .modal-overview { -webkit-line-clamp: 5; }
-  .modal-body { padding: 18px 16px 28px; }
+  .trailer-close { top: 8px; width: 40px; height: 40px; }
+  .trailer-btn { min-height: 44px; padding: 8px 18px; border-radius: 999px; }
+  .tag { min-height: 26px; align-items: center; }
+  .modal-body { padding: 20px 16px 28px; }
   .section-title { font-size: 1.15rem; margin-bottom: 12px; }
   .search-row { flex-wrap: wrap; gap: 8px; }
   .torrent-search { flex: 1 1 70%; }
