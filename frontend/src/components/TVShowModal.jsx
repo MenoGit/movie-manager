@@ -18,6 +18,8 @@ import { TorrentControls, TorrentList } from './TorrentList'
 import { isSeasonPack } from '../torrentScoring'
 import useTorrentView from '../useTorrentView'
 import useSheetDrag from '../useSheetDrag'
+import usePosterColor from '../usePosterColor'
+import { usePosterMorph } from '../heroMorph'
 import './torrentModal.css'
 
 export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePathLabel = 'TV-Shows' }) {
@@ -141,10 +143,17 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
   const savePathHint = `/${savePathLabel}/${show.title}/Season ${String(scope.season ?? selectedSeason).padStart(2, '0')}/`
 
   const { sheetRef, backdropRef } = useSheetDrag(onClose)
+  // Desktop poster→hero FLIP morph + poster-tinted ambience (see heroMorph.js).
+  const { morphOrigin, heroPosterRef } = usePosterMorph(show.poster_url)
+  const posterColor = usePosterColor(show.poster_url)
 
   return (
     <div className="modal-backdrop" ref={backdropRef} onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${expanded ? 'modal-expanded' : ''}`} ref={sheetRef}>
+      <div
+        className={`modal ${expanded ? 'modal-expanded' : ''} ${morphOrigin ? 'modal-morph' : 'modal-zoom'}`}
+        ref={sheetRef}
+        style={posterColor ? { '--hero-tint': posterColor.join(' ') } : undefined}
+      >
         <div className="sheet-grip" aria-hidden="true"><span /></div>
         <button className="modal-expand" onClick={() => setExpanded(v => !v)} title={expanded ? 'Compact view' : 'Expand modal'}>
           {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
@@ -155,7 +164,7 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
         <div className="modal-hero" style={{ backgroundImage: detail?.backdrop_path ? `url(https://image.tmdb.org/t/p/w1280${detail.backdrop_path})` : undefined }}>
           <div className="modal-hero-overlay" />
           <div className="modal-hero-content">
-            {show.poster_url && <img className="modal-poster" src={show.poster_url} alt={show.title} />}
+            {show.poster_url && <img className="modal-poster" src={show.poster_url} alt={show.title} ref={heroPosterRef} />}
             <div className="modal-meta">
               <h2 className="modal-title">{show.title}</h2>
               <div className="modal-tags">
