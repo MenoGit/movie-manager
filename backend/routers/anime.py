@@ -3,7 +3,7 @@ Routes mirror TV but with an anime-filtered discover under the hood."""
 
 import asyncio
 from fastapi import APIRouter, Query
-from services import tmdb_anime, tmdb_tv, library
+from services import tmdb_anime, tmdb_tv, library, omdb
 
 router = APIRouter(prefix="/anime", tags=["anime"])
 
@@ -143,6 +143,7 @@ async def anime_season(tv_id: int, season_number: int):
 @router.get("/{tv_id}")
 async def anime_detail(tv_id: int):
     detail = await tmdb_anime.get_anime_detail(tv_id)
+    await omdb.attach_scores(detail, (detail.get("external_ids") or {}).get("imdb_id"))
     index = await library.get_tv_library_index()
     in_lib = tv_id in index["tmdb_ids"]
     if not in_lib and index["fallback_titles"]:

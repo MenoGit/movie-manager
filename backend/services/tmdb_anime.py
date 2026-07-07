@@ -109,7 +109,7 @@ async def get_anime_detail(tv_id: int) -> dict:
     """Show detail — same shape as TV detail since anime uses TV endpoints."""
     data = await _get(
         f"/tv/{tv_id}",
-        append_to_response="videos,credits,watch/providers,content_ratings",
+        append_to_response="videos,credits,watch/providers,content_ratings,external_ids",
     )
     us_providers = data.get("watch/providers", {}).get("results", {}).get("US", {})
     data["streaming_services"] = us_providers.get("flatrate", []) or us_providers.get("free", [])

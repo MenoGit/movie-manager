@@ -172,6 +172,12 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
                 {detail?.number_of_seasons && <span className="tag">{detail.number_of_seasons} season{detail.number_of_seasons === 1 ? '' : 's'}</span>}
                 {detail?.us_rating && <span className="tag">{detail.us_rating}</span>}
                 <span className="tag">★ {show.vote_average?.toFixed(1)}</span>
+                {detail?.critic_score != null && (
+                  <span className="tag tag-tomato" title="Rotten Tomatoes critic score">🍅 {detail.critic_score}%</span>
+                )}
+                {detail?.audience_score != null && (
+                  <span className="tag tag-popcorn" title="Audience score (blended IMDb + TMDb, RT-calibrated)">🍿 {detail.audience_score}%</span>
+                )}
                 {show.in_library && (
                   <span className={`tag ${detail?.library_progress?.complete ? 'tag-green' : 'tag-accent'}`}>
                     <Check size={12}/>

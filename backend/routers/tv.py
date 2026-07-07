@@ -1,6 +1,6 @@
 import asyncio
 from fastapi import APIRouter, Query
-from services import tmdb_tv, library
+from services import tmdb_tv, library, omdb
 
 router = APIRouter(prefix="/tv", tags=["tv"])
 
@@ -154,6 +154,7 @@ async def tv_season(tv_id: int, season_number: int):
 @router.get("/{tv_id}")
 async def tv_detail(tv_id: int):
     detail = await tmdb_tv.get_tv_detail(tv_id)
+    await omdb.attach_scores(detail, (detail.get("external_ids") or {}).get("imdb_id"))
     index = await library.get_tv_library_index()
     in_lib = tv_id in index["tmdb_ids"]
     if not in_lib and index["fallback_titles"]:

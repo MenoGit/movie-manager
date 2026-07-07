@@ -133,6 +133,12 @@ export default function MovieModal({ movie, onClose }) {
                 {year && <span className="tag">{year}</span>}
                 {detail?.runtime && <span className="tag">{detail.runtime}min</span>}
                 <span className="tag">★ {movie.vote_average?.toFixed(1)}</span>
+                {detail?.critic_score != null && (
+                  <span className="tag tag-tomato" title="Rotten Tomatoes critic score">🍅 {detail.critic_score}%</span>
+                )}
+                {detail?.audience_score != null && (
+                  <span className="tag tag-popcorn" title="Audience score (blended IMDb + TMDb, RT-calibrated)">🍿 {detail.audience_score}%</span>
+                )}
                 {movie.in_library && <span className="tag tag-green"><Check size={12}/> In Library</span>}
               </div>
               {detail?.genres && (

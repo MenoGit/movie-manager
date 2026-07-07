@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     jellyfin_api_key: str
     # Active library provider: "jellyfin" (default) or "plex".
     library_provider: str = "jellyfin"
+    # OMDb (critic/audience scores). Empty disables the feature.
+    omdb_api_key: str = ""
     movies_path: str = "/mnt/media/movies"
     tv_shows_path: str = "/mnt/media/tv-shows"
 

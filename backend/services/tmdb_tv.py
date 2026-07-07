@@ -68,7 +68,7 @@ async def get_tv_detail(tv_id: int) -> dict:
     """Full show metadata + extras (videos, credits, watch/providers, content_ratings)."""
     data = await _get(
         f"/tv/{tv_id}",
-        append_to_response="videos,credits,watch/providers,content_ratings",
+        append_to_response="videos,credits,watch/providers,content_ratings,external_ids",
     )
 
     # Extract US streaming providers (flatrate / free / ads) for convenience

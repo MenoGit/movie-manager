@@ -25,6 +25,7 @@ _DUMMY_ENV = {
     "PLEX_TOKEN": "test-plex-token",
     "JELLYFIN_URL": "http://jellyfin.test:8096",
     "JELLYFIN_API_KEY": "test-jellyfin-key",
+    "OMDB_API_KEY": "test-omdb-key",
 }
 for _key, _val in _DUMMY_ENV.items():
     os.environ.setdefault(_key, _val)

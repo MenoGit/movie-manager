@@ -1,7 +1,7 @@
 import random
 from typing import Optional
 from fastapi import APIRouter, Query
-from services import tmdb, library
+from services import tmdb, library, omdb
 
 router = APIRouter(prefix="/movies", tags=["movies"])
 
@@ -257,6 +257,7 @@ async def search(q: str = Query(..., min_length=1)):
 @router.get("/{movie_id}")
 async def movie_detail(movie_id: int):
     detail = await tmdb.get_movie_detail(movie_id)
+    await omdb.attach_scores(detail, detail.get("imdb_id"))
     index = await library.get_library_index()
     in_lib = movie_id in index["tmdb_ids"]
     if not in_lib and index["fallback_titles"]:
