@@ -26,3 +26,9 @@ venv/
 # Claude
 .claude/
 .pytest-deps/
+
+# Runtime state of compose services — certs/keys (caddy) and Jellyfin's
+# database (API keys, password hashes) + 7GB of metadata/cache. Never commit.
+jellyfin/
+caddy/data/
+caddy/config/

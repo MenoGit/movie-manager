@@ -45,3 +45,72 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+
+  # Jellyfin — runs in PARALLEL to the native Plex server (plexmediaserver.service
+  # on :32400). Plex is untouched. Jellyfin's own files live in ./jellyfin and never
+  # mix with Plex's /var/lib/plexmediaserver. Media is mounted READ-ONLY and shared.
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+    volumes:
+      - ./jellyfin/config:/config
+      - ./jellyfin/cache:/cache
+      # Same library Plex reads, mounted read-write (Jellyfin UI deletes go to disk).
+      # /media/Movies, /media/TV-Shows, /media/Movies_SDR, /media/Music, ...
+      - /mnt/6TB/Plex-Media:/media:rw
+    devices:
+      # Intel HD 530 (Skylake) Quick Sync — VAAPI/QSV transcoding.
+      - /dev/dri:/dev/dri
+    group_add:
+      # gid 992 = host 'render' group, owner of /dev/dri/renderD128 (QSV access).
+      - "992"
+    ports:
+      - "8096:8096"
+    restart: unless-stopped
+
+  # DuckDNS updater — keeps menomedia.duckdns.org pointed at this home's current
+  # public IP. Auto-detects the public IP from the request source and refreshes
+  # every 5 minutes, so the record self-heals on IP change. Token lives in .env
+  # (gitignored), never in this tracked file.
+  duckdns:
+    image: lscr.io/linuxserver/duckdns:latest
+    container_name: duckdns
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+      - SUBDOMAINS=menomedia
+      - TOKEN=${DUCKDNS_TOKEN}
+      - UPDATE_IP=ipv4
+      - LOG_FILE=false
+    restart: unless-stopped
+
+  # Caddy reverse proxy — public HTTPS entry point. On the same bridge network as
+  # jellyfin, so it proxies to jellyfin:8096 by container name. Auto-obtains a
+  # Let's Encrypt cert for menomedia.duckdns.org; certs persist in ./caddy/data.
+  caddy:
+    image: caddy:2
+    container_name: caddy
+    # Use public resolvers for ACME/outbound lookups. The host's resolv.conf points
+    # at the systemd-resolved stub (127.0.0.53), which isn't reachable from inside
+    # the container netns. Docker's embedded resolver (127.0.0.11) still handles
+    # container-name lookups like `jellyfin`, so reverse_proxy keeps working.
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/data:/data
+      - ./caddy/config:/config
+    restart: unless-stopped
+    depends_on:
+      - duckdns
+      - jellyfin
