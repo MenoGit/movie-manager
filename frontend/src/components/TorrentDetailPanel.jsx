@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { X, Download, AlertTriangle, Award } from 'lucide-react'
 import { hasSpanishAudio } from '../utils'
 import { isSeasonPack } from '../torrentScoring'
+import useSheetDrag from '../useSheetDrag'
 
 // ─── Grade mapping ────────────────────────────────────────────────────────
 
@@ -232,6 +233,11 @@ export default function TorrentDetailPanel({ torrent, context, onClose, onDownlo
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
+  // Mobile: same drag-to-dismiss as the detail sheet (no-op on desktop,
+  // where the panel stays a right-side drawer). Must run before the early
+  // return below — hooks are unconditional.
+  const { sheetRef, backdropRef } = useSheetDrag(onClose)
+
   if (!torrent || !torrent._score) return null
 
   const score = torrent._score
@@ -256,8 +262,9 @@ export default function TorrentDetailPanel({ torrent, context, onClose, onDownlo
   }
 
   return (
-    <div className="tdp-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <aside className="tdp-panel" role="dialog" aria-label="Torrent details">
+    <div className="tdp-backdrop" ref={backdropRef} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <aside className="tdp-panel" role="dialog" aria-label="Torrent details" ref={sheetRef}>
+        <div className="sheet-grip" aria-hidden="true"><span /></div>
         <header className="tdp-header">
           <button className="tdp-close" onClick={onClose} aria-label="Close"><X size={18}/></button>
           <div className="tdp-grade-row">
@@ -390,7 +397,7 @@ export default function TorrentDetailPanel({ torrent, context, onClose, onDownlo
       <style>{`
         .tdp-backdrop {
           position: fixed; inset: 0;
-          background: rgba(0,0,0,0.5);
+          background: rgba(0, 0, 0, calc(0.5 * var(--sheet-dim, 1)));
           z-index: 110;
           animation: fade-in 0.2s ease-out;
         }
@@ -592,16 +599,27 @@ export default function TorrentDetailPanel({ torrent, context, onClose, onDownlo
           border-top: 1px solid var(--border);
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
+          /* Bottom sheet, matched to the detail modal's sheet: same radius,
+             same deceleration curve, same grip + drag-to-dismiss. */
           .tdp-panel {
             top: auto; bottom: 0; left: 0; right: 0;
             width: 100%; max-width: 100%;
-            height: 85vh;
-            border-left: none; border-top: 1px solid var(--border);
-            border-radius: 16px 16px 0 0;
-            animation: slide-in-bottom 0.3s ease-out;
+            height: 88vh;
+            height: 88dvh;
+            border-left: none;
+            border-top: 1px solid var(--border-strong);
+            border-radius: 22px 22px 0 0;
+            animation: slide-in-bottom 420ms var(--ease);
+            will-change: transform;
+            overscroll-behavior: contain;
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+            box-shadow: 0 -12px 60px rgba(0, 0, 0, 0.7);
           }
-          @keyframes slide-in-bottom { from { transform: translateY(100%); } to { transform: translateY(0); } }
+          @keyframes slide-in-bottom { from { transform: translate3d(0, 100%, 0); } to { transform: translate3d(0, 0, 0); } }
+          .tdp-header { border-radius: 22px 22px 0 0; padding-top: 24px; }
+          .tdp-close { width: 44px; height: 44px; }
+          .tdp-download { min-height: 48px; }
         }
       `}</style>
     </aside>

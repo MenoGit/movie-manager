@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './index.css'
 import { Film, LayoutGrid, Tv, Clock, Settings as SettingsIcon, Bell } from 'lucide-react'
 import Home from './pages/Home'
@@ -61,6 +61,60 @@ export default function App() {
     try { localStorage.setItem('mode', mode) } catch {}
   }, [mode])
 
+  // Direction-aware mode switching: the incoming page slides in from the
+  // side you're heading toward (mobile only — the animation is gated to the
+  // mobile breakpoint in CSS; desktop swaps instantly as before).
+  const MODES = ['movies', 'tv', 'anime']
+  const [pageAnim, setPageAnim] = useState('')
+  function switchMode(next) {
+    if (next === mode) return
+    setPageAnim(MODES.indexOf(next) > MODES.indexOf(mode) ? 'page-in-left' : 'page-in-right')
+    setMode(next)
+  }
+
+  // Mobile swipe between Movies / TV / Anime. Detection only — listeners are
+  // passive and never hijack a scroll: gestures that start on a horizontally
+  // scrollable element (chip rows, poster rails) or while a modal sheet is
+  // open are ignored, and the mode flips on release, not mid-gesture.
+  const mainRef = useRef(null)
+  useEffect(() => {
+    const el = mainRef.current
+    if (!el) return
+    let sx = 0, sy = 0, eligible = false
+
+    const insideHorizontalScroller = (node) => {
+      for (let n = node; n && n !== el; n = n.parentElement) {
+        if (n.scrollWidth > n.clientWidth + 4) {
+          const ox = getComputedStyle(n).overflowX
+          if (ox === 'auto' || ox === 'scroll') return true
+        }
+      }
+      return false
+    }
+    const onStart = (e) => {
+      eligible = window.matchMedia('(max-width: 768px)').matches
+        && !document.body.classList.contains('modal-open')
+        && !insideHorizontalScroller(e.target)
+      sx = e.touches[0].clientX
+      sy = e.touches[0].clientY
+    }
+    const onEnd = (e) => {
+      if (!eligible) return
+      const dx = e.changedTouches[0].clientX - sx
+      const dy = e.changedTouches[0].clientY - sy
+      if (Math.abs(dx) < 70 || Math.abs(dx) < 2.2 * Math.abs(dy)) return
+      const idx = MODES.indexOf(mode)
+      const next = dx < 0 ? MODES[idx + 1] : MODES[idx - 1]
+      if (next) switchMode(next)
+    }
+    el.addEventListener('touchstart', onStart, { passive: true })
+    el.addEventListener('touchend', onEnd, { passive: true })
+    return () => {
+      el.removeEventListener('touchstart', onStart)
+      el.removeEventListener('touchend', onEnd)
+    }
+  }, [mode])
+
   let page
   if (mode === 'anime') page = view === 'browse' ? <AnimeBrowse /> : <AnimeHome />
   else if (mode === 'tv') page = view === 'browse' ? <TVBrowse /> : <TVHome />
@@ -76,21 +130,21 @@ export default function App() {
         <div className="mode-tabs" role="tablist" aria-label="Content">
           <button
             className={`mode-tab ${mode === 'movies' ? 'active' : ''}`}
-            onClick={() => setMode('movies')}
+            onClick={() => switchMode('movies')}
             aria-pressed={mode === 'movies'}
           >
             Movies
           </button>
           <button
             className={`mode-tab ${mode === 'tv' ? 'active' : ''}`}
-            onClick={() => setMode('tv')}
+            onClick={() => switchMode('tv')}
             aria-pressed={mode === 'tv'}
           >
             TV Shows
           </button>
           <button
             className={`mode-tab ${mode === 'anime' ? 'active' : ''}`}
-            onClick={() => setMode('anime')}
+            onClick={() => switchMode('anime')}
             aria-pressed={mode === 'anime'}
           >
             Anime
@@ -147,8 +201,10 @@ export default function App() {
         </div>
       </header>
       <NotificationBanner />
-      <main>
-        {page}
+      <main ref={mainRef}>
+        <div key={mode} className={`page-shell ${pageAnim}`}>
+          {page}
+        </div>
       </main>
       {showHistory && <HistoryOverlay onClose={() => setShowHistory(false)} />}
       {showSettings && <SettingsOverlay onClose={() => setShowSettings(false)} />}
@@ -240,11 +296,37 @@ export default function App() {
         }
         .view-btn:hover { color: var(--text); }
         .view-btn.active { background: var(--accent); color: #000; }
-        @media (max-width: 480px) {
-          .app-header { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
-          .mode-tab { padding: 5px 10px; font-size: 12px; }
-          .view-toggle { padding: 2px; }
-          .view-btn { padding: 6px 8px; min-height: 32px; min-width: 32px; }
+        @media (max-width: 768px) {
+          /* Page slide-fade when switching Movies / TV / Anime (swipe or tap).
+             Keyed remount restarts the animation; desktop swaps instantly. */
+          .page-shell.page-in-left { animation: page-in-left 320ms var(--ease); }
+          .page-shell.page-in-right { animation: page-in-right 320ms var(--ease); }
+          @keyframes page-in-left {
+            from { opacity: 0; transform: translateX(28px); }
+            to { opacity: 1; transform: translateX(0); }
+          }
+          @keyframes page-in-right {
+            from { opacity: 0; transform: translateX(-28px); }
+            to { opacity: 1; transform: translateX(0); }
+          }
+
+          /* Header reflows to two rows: logo + actions, then a full-width
+             thumb-sized segmented control. */
+          .app-header { padding: 10px 14px 8px; gap: 10px; flex-wrap: wrap; }
+          .mode-tabs {
+            order: 3;
+            flex-basis: 100%;
+            border-radius: 12px;
+          }
+          .mode-tab {
+            flex: 1;
+            min-height: 44px;
+            padding: 8px 10px;
+            border-radius: 9px;
+            font-size: 13px;
+          }
+          .icon-btn { width: 42px; height: 42px; border-radius: 10px; }
+          .view-btn { padding: 8px 10px; min-height: 36px; min-width: 38px; }
         }
       `}</style>
     </div>

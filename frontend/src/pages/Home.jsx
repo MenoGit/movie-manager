@@ -715,12 +715,14 @@ export default function Home() {
             padding-left: 14px; padding-right: 14px;
           }
           .tabs::-webkit-scrollbar { display: none; }
-          .tab { white-space: nowrap; font-size: 12px; padding: 8px 14px; min-height: 36px; }
+          .tabs, .genre-scroll, .streaming-filters { overscroll-behavior-x: contain; }
+          .tab { white-space: nowrap; font-size: 13px; padding: 10px 16px; min-height: 44px; }
           .genre-scroll {
             margin-left: -14px; margin-right: -14px;
             padding-left: 14px; padding-right: 14px;
           }
-          .genre-btn { padding: 6px 10px; font-size: 11px; min-height: 32px; }
+          .genre-btn { padding: 8px 14px; font-size: 12px; min-height: 40px; }
+          .decade-btn { min-height: 40px; padding: 8px 18px; }
           .streaming-filters {
             flex-wrap: nowrap;
             overflow-x: auto;
@@ -729,9 +731,14 @@ export default function Home() {
             padding: 0 14px 6px;
           }
           .streaming-filters::-webkit-scrollbar { display: none; }
-          .streaming-btn { white-space: nowrap; font-size: 11px; padding: 6px 12px; min-height: 32px; }
+          .streaming-btn { white-space: nowrap; font-size: 12px; padding: 8px 14px; min-height: 40px; }
+          .filter-btn, .filter-clear { min-height: 40px; padding: 8px 14px; }
+          .search-form { padding: 8px 8px 8px 18px; }
+          .search-input { font-size: 16px; } /* 16px stops iOS auto-zoom on focus */
+          .search-submit { min-height: 40px; }
+          .watchlist-btn { width: 36px; height: 36px; bottom: 60px; }
 
-          .filter-mobile-toggle { display: inline-flex; }
+          .filter-mobile-toggle { display: inline-flex; min-height: 44px; }
           .filter-toolbar {
             display: none;
             flex-direction: column;
@@ -747,12 +754,13 @@ export default function Home() {
           }
         }
         @media (max-width: 480px) {
+          .home { padding: 14px 10px 40px; }
           .movie-grid {
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+            gap: 14px 10px;
           }
-          .search-form { padding: 8px 12px; }
-          .search-submit { padding: 6px 10px; font-size: 12px; }
+          .search-form { padding: 7px 7px 7px 16px; }
+          .search-submit { padding: 8px 14px; font-size: 12px; }
         }
       `}</style>
     </div>

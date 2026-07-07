@@ -281,8 +281,11 @@ export default function ContentRow({ title, subtitle, fetcher, onOpen, variant =
           .row-title { font-size: 1rem; }
           .row-scroller {
             padding: 8px 16px;
-            scroll-snap-type: x mandatory;
+            /* proximity, not mandatory: fast flicks glide with momentum and
+               only settle onto a card edge when they'd stop near one */
+            scroll-snap-type: x proximity;
             -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
           }
           .row-arrow { display: none; }
           .browse-card {
