@@ -93,6 +93,20 @@ export function matchesPrefs(score, prefs) {
 }
 
 /**
+ * TMDb 0-10 average → RT-style popcorn percentage, for browse cards.
+ * JS twin of the backend's omdb.popcorn_pct — same logistic curve, same
+ * constants (midpoint 4.71, spread 1.5) — so a card's 🍿 matches the
+ * modal's when the modal has no IMDb rating to blend in. The anchor table
+ * in popcorn.test.js mirrors backend test_omdb.py; the two lock the
+ * constants in parity — change one side and both suites fail.
+ * Returns null for missing or 0.0 (TMDb's "unrated") so the badge hides.
+ */
+export function popcornPct(avg10) {
+  if (!avg10) return null
+  return Math.round(100 / (1 + Math.exp(-(avg10 - 4.71) / 1.5)))
+}
+
+/**
  * Short card label for a TV show's library progress. Backend list endpoints
  * only ship seasons_in_library + episodes_in_library_count (cheap).
  * Detail endpoints additionally have total_episodes, seasons_complete, complete —

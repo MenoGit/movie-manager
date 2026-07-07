@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Check, Film, Sparkles } from 'lucide-react'
-import { isInTheaters, hasSpanish, libraryProgressLabel } from '../utils'
+import { isInTheaters, hasSpanish, libraryProgressLabel, popcornPct } from '../utils'
 import { rememberPosterOrigin } from '../heroMorph'
 
 /**
@@ -231,6 +231,12 @@ export default function ContentRow({ title, subtitle, fetcher, onOpen, variant =
           color: var(--accent);
           font-weight: 600;
         }
+        .card-overlay-popcorn {
+          color: var(--text);
+          font-weight: 700;
+          white-space: nowrap;
+          text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+        }
         .card-overlay-year { color: var(--text-muted); }
         .card-overlay-es {
           margin-left: auto;
@@ -354,6 +360,11 @@ function RowCard({ movie, rank, onClick }) {
           {movie.vote_average ? (
             <span className="card-overlay-rating">★ {movie.vote_average.toFixed(1)}</span>
           ) : null}
+          {popcornPct(movie.vote_average) != null && (
+            <span className="card-overlay-popcorn" title="Audience score (TMDb, RT-calibrated)">
+              🍿 {popcornPct(movie.vote_average)}%
+            </span>
+          )}
           {year && <span className="card-overlay-year">{year}</span>}
           {hasSpanish(movie) && (
             <span className="card-overlay-es" title="Originally Spanish-language film">ES</span>

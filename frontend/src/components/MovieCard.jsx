@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Check, Film, Sparkles } from 'lucide-react'
-import { isInTheaters, hasSpanish, libraryProgressLabel } from '../utils'
+import { isInTheaters, hasSpanish, libraryProgressLabel, popcornPct } from '../utils'
 import { rememberPosterOrigin } from '../heroMorph'
 
 const STREAMING_LOGOS = {
@@ -56,7 +56,14 @@ export default function MovieCard({ movie, onClick }) {
           </div>
         )}
         <div className="movie-card-overlay">
-          <div className="movie-card-rating">★ {movie.vote_average?.toFixed(1)}</div>
+          <div className="movie-card-scores">
+            <div className="movie-card-rating">★ {movie.vote_average?.toFixed(1)}</div>
+            {popcornPct(movie.vote_average) != null && (
+              <span className="movie-card-popcorn" title="Audience score (TMDb, RT-calibrated)">
+                🍿 {popcornPct(movie.vote_average)}%
+              </span>
+            )}
+          </div>
           {hasSpanish(movie) && (
             <span className="movie-card-spanish" title="Originally Spanish-language film">ES</span>
           )}
@@ -193,12 +200,26 @@ export default function MovieCard({ movie, onClick }) {
           transition: opacity var(--dur) var(--ease);
         }
         .movie-card:hover .movie-card-overlay { opacity: 1; }
+        .movie-card-scores {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+        }
         .movie-card-rating {
           font-size: 12.5px;
           color: var(--accent-bright);
           font-weight: 700;
           letter-spacing: 0.02em;
           text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+        }
+        .movie-card-popcorn {
+          font-size: 11.5px;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+          color: var(--text);
+          text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+          white-space: nowrap;
         }
         .movie-card-spanish {
           background: rgba(88, 28, 135, 0.75);
