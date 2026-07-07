@@ -45,33 +45,56 @@
   transition: background 0.2s;
 }
 .modal-close:hover { background: var(--accent); color: #000; }
+/* Hero: edge-to-edge backdrop, content layered at the bottom over a
+   bottom-to-top scrim with soft side vignettes. Desktop values here; the
+   mobile sheet block below overrides every layout-affecting rule. */
 .modal-hero {
   position: relative;
-  background: var(--surface2) center/cover no-repeat;
+  background: var(--surface2) center 20% / cover no-repeat;
   border-radius: 14px 14px 0 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: min(420px, 52vh);
 }
 .modal-hero-overlay {
   position: absolute; inset: 0;
-  background: linear-gradient(to right, rgba(10,10,15,0.95) 40%, rgba(10,10,15,0.5));
+  background:
+    linear-gradient(
+      to top,
+      var(--tinted-surface, var(--surface)) 0%,
+      rgba(18, 18, 27, 0.6) 32%,
+      rgba(18, 18, 27, 0.16) 62%,
+      rgba(18, 18, 27, 0) 88%
+    ),
+    linear-gradient(
+      to right,
+      rgba(7, 7, 11, 0.45),
+      rgba(7, 7, 11, 0) 26%,
+      rgba(7, 7, 11, 0) 74%,
+      rgba(7, 7, 11, 0.35)
+    );
 }
 .modal-hero-content {
   position: relative;
-  display: flex; gap: 24px;
-  padding: 32px;
+  display: flex; gap: 26px;
+  align-items: flex-end;
+  padding: 88px 36px 26px;
 }
 .modal-poster {
-  width: 130px; min-width: 130px;
+  width: 152px; min-width: 152px;
   aspect-ratio: 2/3;
   object-fit: cover;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  border-radius: 10px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
 }
 .modal-meta { flex: 1; }
 .modal-title {
-  font-size: 2rem;
-  line-height: 1.1;
+  font-size: clamp(2.1rem, 4vw, 2.9rem);
+  line-height: 1.05;
   margin-bottom: 10px;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.65);
 }
 .modal-tags {
   display: flex; gap: 8px; flex-wrap: wrap;
@@ -109,13 +132,15 @@
   font-size: 12px;
 }
 .modal-overview {
-  font-size: 13px; line-height: 1.6;
-  color: rgba(240,238,234,0.75);
+  font-size: 13.5px; line-height: 1.65;
+  color: rgba(240, 238, 234, 0.82);
+  max-width: 68ch;
   margin-bottom: 14px;
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
 }
 .trailer-btn {
   display: inline-flex; align-items: center; gap: 6px;
@@ -484,6 +509,42 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+@keyframes modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modal-zoom {
+  from { opacity: 0; transform: translateY(18px) scale(0.965); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ── Desktop: entrance + poster-tinted ambient ────────────────────────────
+   --hero-tint (an "r g b" triplet extracted from the poster) tints the
+   scrim's landing color and the top of the modal body, so each film's art
+   subtly colors the room. Falls back to the amber accent. The .modal-morph
+   entrance is a pure opacity fade — geometry must hold still while the
+   poster clone flies from the clicked card (see MovieModal). .modal-zoom is
+   the cinematic fade-and-scale fallback when there's no origin to fly from. */
+@media (min-width: 769px) {
+  .modal-backdrop { animation: backdrop-in 240ms ease-out; }
+  .modal {
+    --tinted-surface: color-mix(in srgb, var(--surface) 86%, rgb(var(--hero-tint, 232 160 48)));
+    box-shadow: var(--shadow-2);
+  }
+  .modal-morph { animation: modal-fade 320ms var(--ease); }
+  .modal-zoom { animation: modal-zoom 420ms var(--ease); }
+  .modal-body {
+    background: linear-gradient(to bottom, var(--tinted-surface), var(--surface) 380px);
+  }
+  .trailer-btn {
+    background: rgba(7, 7, 11, 0.5);
+    backdrop-filter: blur(8px);
+    border-color: var(--border-strong);
+    border-radius: 999px;
+    padding: 9px 20px;
+    font-weight: 600;
+  }
+}
 
 @media (max-width: 768px) {
   .modal-backdrop {
@@ -575,7 +636,13 @@
     font-size: clamp(26px, 7.5vw, 34px);
     text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
   }
-  .modal-overview { -webkit-line-clamp: 3; font-size: 13px; }
+  .modal-overview {
+    -webkit-line-clamp: 3;
+    font-size: 13px;
+    color: rgba(240, 238, 234, 0.75);
+    max-width: none;
+    text-shadow: none;
+  }
   .trailer-embed { margin: 0 0 16px; border-radius: 0; border-left: 0; border-right: 0; }
   .trailer-close { top: 8px; width: 40px; height: 40px; }
   .trailer-btn { min-height: 44px; padding: 8px 18px; border-radius: 999px; }

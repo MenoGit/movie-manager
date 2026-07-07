@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Check, Film, Sparkles } from 'lucide-react'
 import { isInTheaters, hasSpanish, libraryProgressLabel } from '../utils'
+import { rememberPosterOrigin } from '../heroMorph'
 
 /**
  * Horizontal carousel of movie cards.
@@ -318,9 +319,13 @@ export default function ContentRow({ title, subtitle, fetcher, onOpen, variant =
 const POSTER_BASE = 'https://image.tmdb.org/t/p/w342'
 
 function RowCard({ movie, rank, onClick }) {
+  const handleClick = (e) => {
+    rememberPosterOrigin(e.currentTarget)
+    onClick()
+  }
   const year = movie.release_date?.split('-')[0]
   const card = (
-    <div className="browse-card" onClick={onClick}>
+    <div className="browse-card" onClick={handleClick}>
       {movie.in_library && (
         <span className="card-library"><Check size={10} /> In Library</span>
       )}

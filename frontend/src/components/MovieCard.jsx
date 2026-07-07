@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Check, Film, Sparkles } from 'lucide-react'
 import { isInTheaters, hasSpanish, libraryProgressLabel } from '../utils'
+import { rememberPosterOrigin } from '../heroMorph'
 
 const STREAMING_LOGOS = {
   8: 'Netflix',
@@ -17,7 +18,13 @@ export default function MovieCard({ movie, onClick }) {
   const [imgLoaded, setImgLoaded] = useState(false)
 
   return (
-    <div className="movie-card" onClick={() => onClick(movie)}>
+    <div
+      className="movie-card"
+      onClick={(e) => {
+        rememberPosterOrigin(e.currentTarget.querySelector('.movie-card-poster'))
+        onClick(movie)
+      }}
+    >
       <div className="movie-card-poster">
         {movie.poster_url && !imgError ? (
           <>

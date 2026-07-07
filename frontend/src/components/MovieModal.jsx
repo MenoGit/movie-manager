@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { X, Search, Play, Check, AlertTriangle, Maximize2, Minimize2 } from 'lucide-react'
 import { getMovieDetail, searchTorrents, addTorrent } from '../api'
 import AutoDownloadButton from './AutoDownloadButton'
@@ -6,6 +6,8 @@ import TorrentDetailPanel from './TorrentDetailPanel'
 import { TorrentControls, TorrentList } from './TorrentList'
 import useTorrentView from '../useTorrentView'
 import useSheetDrag from '../useSheetDrag'
+import usePosterColor from '../usePosterColor'
+import { consumePosterOrigin } from '../heroMorph'
 import './torrentModal.css'
 
 // Backend tags each torrent with _match: year_match | no_year | other_year.
@@ -93,9 +95,69 @@ export default function MovieModal({ movie, onClose }) {
   const trailer = detail?.trailer
   const { sheetRef, backdropRef } = useSheetDrag(onClose)
 
+  // Desktop poster→hero morph. The origin rect is consumed exactly once,
+  // during the first render, so the entrance class is stable and the modal's
+  // own animation can be a pure opacity fade (geometry must not move while
+  // the clone flies). The clone is plain DOM driven by a transform
+  // transition — compositor-only, no per-frame React work.
+  const [morphOrigin] = useState(consumePosterOrigin)
+  const heroPosterRef = useRef(null)
+  const posterColor = usePosterColor(movie.poster_url)
+
+  useLayoutEffect(() => {
+    const target = heroPosterRef.current
+    if (!morphOrigin || !target || !movie.poster_url) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const dest = target.getBoundingClientRect()
+    if (!dest.width) return
+
+    const clone = document.createElement('img')
+    clone.src = movie.poster_url
+    Object.assign(clone.style, {
+      position: 'fixed',
+      left: `${dest.left}px`,
+      top: `${dest.top}px`,
+      width: `${dest.width}px`,
+      height: `${dest.height}px`,
+      objectFit: 'cover',
+      borderRadius: '10px',
+      margin: '0',
+      zIndex: '200',
+      pointerEvents: 'none',
+      transformOrigin: 'top left',
+      willChange: 'transform',
+      boxShadow: '0 12px 48px rgba(0,0,0,0.6)',
+      transform: `translate(${morphOrigin.left - dest.left}px, ${morphOrigin.top - dest.top}px) ` +
+        `scale(${morphOrigin.width / dest.width}, ${morphOrigin.height / dest.height})`,
+    })
+    target.style.opacity = '0'
+    document.body.appendChild(clone)
+
+    let finished = false
+    const done = () => {
+      if (finished) return
+      finished = true
+      target.style.opacity = ''
+      clone.remove()
+    }
+    // Double rAF: paint the start frame at the card's rect, then transition
+    // to identity (the poster's real spot in the hero).
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      clone.style.transition = 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1)'
+      clone.style.transform = 'translate(0px, 0px) scale(1, 1)'
+    }))
+    clone.addEventListener('transitionend', done, { once: true })
+    const safety = setTimeout(done, 650)
+    return () => { clearTimeout(safety); done() }
+  }, [])
+
   return (
     <div className="modal-backdrop" ref={backdropRef} onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${expanded ? 'modal-expanded' : ''}`} ref={sheetRef}>
+      <div
+        className={`modal ${expanded ? 'modal-expanded' : ''} ${morphOrigin ? 'modal-morph' : 'modal-zoom'}`}
+        ref={sheetRef}
+        style={posterColor ? { '--hero-tint': posterColor.join(' ') } : undefined}
+      >
         <div className="sheet-grip" aria-hidden="true"><span /></div>
         <button
           className="modal-expand"
@@ -115,7 +177,7 @@ export default function MovieModal({ movie, onClose }) {
           <div className="modal-hero-overlay" />
           <div className="modal-hero-content">
             {movie.poster_url && (
-              <img className="modal-poster" src={movie.poster_url} alt={movie.title} />
+              <img className="modal-poster" src={movie.poster_url} alt={movie.title} ref={heroPosterRef} />
             )}
             <div className="modal-meta">
               <h2 className="modal-title">{movie.title}</h2>
