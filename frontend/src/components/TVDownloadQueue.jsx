@@ -124,6 +124,7 @@ export default function TVDownloadQueue() {
           border-radius: var(--radius);
           padding: 20px;
           margin-bottom: 32px;
+          box-shadow: var(--shadow-1);
         }
         .queue-header {
           display: flex; justify-content: space-between; align-items: center;
@@ -133,9 +134,10 @@ export default function TVDownloadQueue() {
         .refresh-btn {
           background: var(--surface2); border: 1px solid var(--border);
           color: var(--text);
-          padding: 6px 14px; border-radius: 6px;
+          padding: 7px 16px; border-radius: 999px;
           font-size: 13px;
           display: flex; align-items: center; gap: 6px;
+          transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
         }
         .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
         .queue-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 12px 0; }
@@ -171,8 +173,10 @@ export default function TVDownloadQueue() {
           margin-bottom: 6px; overflow: hidden;
         }
         .queue-progress-fill {
-          height: 100%; background: var(--accent);
-          border-radius: 2px; transition: width 0.5s;
+          height: 100%;
+          background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+          box-shadow: 0 0 8px var(--accent-glow);
+          border-radius: 2px; transition: width 0.5s var(--ease);
         }
         .queue-stats {
           display: flex; gap: 16px;

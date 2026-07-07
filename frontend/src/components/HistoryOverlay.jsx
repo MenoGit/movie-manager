@@ -188,6 +188,15 @@ export default function HistoryOverlay({ onClose }) {
           .history-item { grid-template-columns: 60px 1fr; row-gap: 4px; }
           .history-size, .history-time { grid-column: 2; padding-left: 0; }
         }
+
+        @media (min-width: 769px) {
+          .history-overlay { animation: backdrop-in 240ms ease-out; }
+          .history-panel {
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-2);
+            animation: modal-zoom 360ms var(--ease);
+          }
+        }
       `}</style>
     </div>
   )

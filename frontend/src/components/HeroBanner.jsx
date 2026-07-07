@@ -143,8 +143,8 @@ export default function HeroBanner({ movies, onOpen }) {
         .hero-overlay {
           position: absolute; inset: 0;
           background:
-            linear-gradient(90deg, rgba(10,10,15,0.97) 0%, rgba(10,10,15,0.6) 45%, rgba(10,10,15,0) 75%),
-            linear-gradient(0deg, rgba(10,10,15,1) 0%, rgba(10,10,15,0) 35%);
+            linear-gradient(90deg, rgba(7,7,11,0.97) 0%, rgba(7,7,11,0.6) 45%, rgba(7,7,11,0) 75%),
+            linear-gradient(0deg, rgba(7,7,11,1) 0%, rgba(7,7,11,0) 35%);
         }
         .hero-content {
           position: absolute;
@@ -192,14 +192,14 @@ export default function HeroBanner({ movies, onOpen }) {
           border-radius: 6px;
           font-size: 14px;
           font-weight: 600;
-          transition: all 0.15s;
+          transition: all var(--dur-fast) var(--ease);
         }
         .hero-btn.primary {
           background: var(--accent);
           color: #000;
           border: 1px solid var(--accent);
         }
-        .hero-btn.primary:hover { background: #f0b040; }
+        .hero-btn.primary:hover { background: var(--accent-bright); }
         .hero-btn.secondary {
           background: rgba(40,40,50,0.7);
           color: var(--text);

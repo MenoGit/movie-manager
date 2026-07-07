@@ -94,7 +94,7 @@ export default function AutoDownloadButton({ id, type, title, release_date, labe
           color: var(--text);
           padding: 6px 14px; border-radius: 6px;
           font-size: 13px;
-          transition: all 0.15s;
+          transition: all var(--dur-fast) var(--ease);
         }
         .auto-dl-btn:hover { border-color: var(--accent); color: var(--accent); }
         .auto-dl-wrap.on .auto-dl-btn {
@@ -108,7 +108,7 @@ export default function AutoDownloadButton({ id, type, title, release_date, labe
           background: transparent; border: 1px solid var(--border);
           color: var(--text-muted);
           padding: 5px 9px; font-size: 11px;
-          transition: all 0.15s;
+          transition: all var(--dur-fast) var(--ease);
         }
         .auto-dl-preset:first-child { border-radius: 6px 0 0 6px; }
         .auto-dl-preset:last-child { border-radius: 0 6px 6px 0; }

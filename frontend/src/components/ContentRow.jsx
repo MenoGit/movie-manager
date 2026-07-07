@@ -125,7 +125,7 @@ export default function ContentRow({ title, subtitle, fetcher, onOpen, variant =
           top: 0; bottom: 0;
           width: 5%;
           display: flex; align-items: center; justify-content: center;
-          background: linear-gradient(90deg, rgba(10,10,15,0.85), rgba(10,10,15,0));
+          background: linear-gradient(90deg, rgba(7,7,11,0.85), rgba(7,7,11,0));
           color: var(--text);
           z-index: 5;
           opacity: 0;
@@ -134,11 +134,11 @@ export default function ContentRow({ title, subtitle, fetcher, onOpen, variant =
         }
         .row-arrow.right {
           right: 0; left: auto;
-          background: linear-gradient(270deg, rgba(10,10,15,0.85), rgba(10,10,15,0));
+          background: linear-gradient(270deg, rgba(7,7,11,0.85), rgba(7,7,11,0));
         }
         .row-arrow.left { left: 0; }
         .row-wrapper:hover .row-arrow { opacity: 1; }
-        .row-arrow:hover { background: rgba(10,10,15,0.95); }
+        .row-arrow:hover { background: rgba(7,7,11,0.95); color: var(--accent-bright); }
 
         /* Top10 row gets numbered cards */
         .row-top10 .row-scroller { padding-left: 5%; gap: 4px; }
@@ -149,17 +149,17 @@ export default function ContentRow({ title, subtitle, fetcher, onOpen, variant =
           flex: 0 0 auto;
           width: 180px;
           aspect-ratio: 2/3;
-          border-radius: 6px;
+          border-radius: var(--radius-sm);
           overflow: hidden;
           cursor: pointer;
-          transition: transform 0.2s ease, box-shadow 0.2s ease, z-index 0s linear 0.2s;
+          transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), z-index 0s linear var(--dur);
           background: var(--surface2);
         }
         .browse-card:hover {
           transform: scale(1.08);
           z-index: 6;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-          transition: transform 0.2s ease, box-shadow 0.2s ease, z-index 0s;
+          box-shadow: 0 16px 32px -8px rgba(0,0,0,0.75), 0 0 24px var(--accent-glow);
+          transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), z-index 0s;
         }
         .browse-card img {
           width: 100%; height: 100%;

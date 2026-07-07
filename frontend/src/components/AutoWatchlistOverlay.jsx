@@ -250,6 +250,15 @@ export default function AutoWatchlistOverlay({ onClose }) {
           .aw-remove { grid-area: remove; }
           .aw-presets { grid-area: presets; }
         }
+
+        @media (min-width: 769px) {
+          .aw-overlay { animation: backdrop-in 240ms ease-out; }
+          .aw-panel {
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-2);
+            animation: modal-zoom 360ms var(--ease);
+          }
+        }
       `}</style>
     </div>
   )

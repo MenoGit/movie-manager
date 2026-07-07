@@ -462,7 +462,7 @@ export default function TorrentDetailPanel({ torrent, context, onClose, onDownlo
           font-size: 13px; font-weight: 600;
           transition: background 0.15s;
         }
-        .tdp-download:hover { background: #f0b040; }
+        .tdp-download:hover { background: var(--accent-bright); }
 
         .tdp-section {
           padding: 16px 20px;

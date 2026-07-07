@@ -102,10 +102,10 @@ export default function AnimeDownloadQueue() {
       )}
 
       <style>{`
-        .queue-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 32px; }
+        .queue-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 32px; box-shadow: var(--shadow-1); }
         .queue-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .queue-actions { display: flex; align-items: center; gap: 12px; }
-        .refresh-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 6px 14px; border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+        .refresh-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 7px 16px; border-radius: 999px; font-size: 13px; display: flex; align-items: center; gap: 6px; transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease); }
         .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
         .queue-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 12px 0; }
         .queue-list { display: flex; flex-direction: column; gap: 12px; }
@@ -119,7 +119,7 @@ export default function AnimeDownloadQueue() {
         .queue-delete { background: transparent; color: var(--text-muted); padding: 2px; border-radius: 4px; display: flex; }
         .queue-delete:hover { color: var(--red); }
         .queue-progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 6px; overflow: hidden; }
-        .queue-progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.5s; }
+        .queue-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent-dim), var(--accent)); box-shadow: 0 0 8px var(--accent-glow); border-radius: 2px; transition: width 0.5s var(--ease); }
         .queue-stats { display: flex; gap: 16px; font-size: 11px; color: var(--text-muted); flex-wrap: wrap; }
         .queue-eta { color: var(--accent); font-weight: 500; }
         .queue-eta.stalled { color: var(--text-muted); font-style: italic; }

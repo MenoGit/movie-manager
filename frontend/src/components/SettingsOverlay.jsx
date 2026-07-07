@@ -182,6 +182,15 @@ export default function SettingsOverlay({ onClose }) {
           .settings-overlay { padding: 0; }
           .settings-panel { border-radius: 0; max-width: 100%; max-height: 100vh; height: 100vh; }
         }
+
+        @media (min-width: 769px) {
+          .settings-overlay { animation: backdrop-in 240ms ease-out; }
+          .settings-panel {
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-2);
+            animation: modal-zoom 360ms var(--ease);
+          }
+        }
       `}</style>
     </div>
   )
