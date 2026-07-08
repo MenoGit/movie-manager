@@ -197,7 +197,7 @@ export default function AutoWatchlistOverlay({ onClose }) {
           border: 1px solid var(--border);
           border-radius: 8px;
         }
-        .aw-item.status-downloaded { border-color: rgba(62,207,142,0.4); }
+        .aw-item.status-downloaded { border-color: rgb(var(--green-rgb) / 0.4); }
         .aw-item.status-failed     { border-color: rgba(220,80,80,0.4); }
         .aw-item-main { min-width: 0; }
         .aw-item-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }

@@ -126,7 +126,15 @@ export default function DownloadQueue() {
 
       <style>{`
         .queue-panel {
-          background: var(--surface);
+          /* Brand art behind the queue at near-full brightness (user's
+             call — readability is carried by the storage sub-box's own
+             opaque surface and text shadows, not by dimming the art).
+             94% size = slightly zoomed out vs cover, with a thin dark
+             inset at the sides; clips to the border-radius natively. */
+          background:
+            linear-gradient(rgb(10 10 14 / 0.18), rgb(10 10 14 / 0.18)),
+            url('/assets/queue-bg.jpg') center / 94% no-repeat,
+            var(--surface);
           border: 1px solid var(--border);
           border-radius: var(--radius);
           padding: 20px;
@@ -136,6 +144,7 @@ export default function DownloadQueue() {
         .queue-header {
           display: flex; justify-content: space-between; align-items: center;
           margin-bottom: 16px;
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 12px rgba(0, 0, 0, 0.6);
         }
         .queue-actions { display: flex; align-items: center; gap: 12px; }
         .queue-storage {
@@ -155,7 +164,12 @@ export default function DownloadQueue() {
           transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
         }
         .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
-        .queue-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 12px 0; }
+        .queue-empty {
+          color: var(--text);
+          font-size: 13px; text-align: center; padding: 12px 0;
+          /* sits directly on the bright art — shadow keeps it legible */
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 12px rgba(0, 0, 0, 0.7);
+        }
         .queue-list { display: flex; flex-direction: column; gap: 12px; }
         .queue-item {
           background: var(--surface2);
@@ -178,7 +192,7 @@ export default function DownloadQueue() {
           background: var(--surface); border: 1px solid var(--border);
         }
         .queue-state[data-state="downloading"] { color: var(--green); border-color: var(--green); }
-        .queue-state[data-state="stalledDL"] { color: var(--accent); border-color: var(--accent); }
+        .queue-state[data-state="stalledDL"] { color: var(--gold); border-color: var(--gold); }
         .queue-delete {
           background: transparent; color: var(--text-muted);
           padding: 2px; border-radius: 4px;
@@ -192,8 +206,8 @@ export default function DownloadQueue() {
         }
         .queue-progress-fill {
           height: 100%;
-          background: linear-gradient(90deg, var(--accent-dim), var(--accent));
-          box-shadow: 0 0 8px var(--accent-glow);
+          background: linear-gradient(90deg, rgb(var(--green-rgb) / 0.65), var(--green));
+          box-shadow: 0 0 8px rgb(var(--green-rgb) / 0.3);
           border-radius: 2px; transition: width 0.5s var(--ease);
         }
         .queue-stats {

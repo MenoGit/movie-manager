@@ -125,7 +125,7 @@ export default function MovieCard({ movie, onClick }) {
           justify-content: center;
           padding: 16px;
           text-align: center;
-          font-family: 'Bebas Neue', sans-serif;
+          font-family: 'Anton', sans-serif;
           font-size: 18px;
           letter-spacing: 0.05em;
           line-height: 1.2;
@@ -139,7 +139,7 @@ export default function MovieCard({ movie, onClick }) {
           left: 8px;
           background: rgba(20, 50, 38, 0.72);
           color: var(--green);
-          border: 1px solid rgba(62, 207, 142, 0.45);
+          border: 1px solid rgb(var(--green-rgb) / 0.45);
           backdrop-filter: blur(6px);
           font-size: 10px;
           font-weight: 700;
@@ -173,9 +173,9 @@ export default function MovieCard({ movie, onClick }) {
           position: absolute;
           top: 8px;
           right: 8px;
-          background: rgba(16, 34, 66, 0.72);
-          color: #7db4ff;
-          border: 1px solid rgba(59, 130, 246, 0.5);
+          background: rgb(var(--crimson-rgb) / 0.18);
+          color: var(--crimson-bright);
+          border: 1px solid rgb(var(--crimson-rgb) / 0.55);
           backdrop-filter: blur(6px);
           font-size: 9px;
           font-weight: 700;
@@ -186,7 +186,7 @@ export default function MovieCard({ movie, onClick }) {
           align-items: center;
           gap: 3px;
           letter-spacing: 0.06em;
-          box-shadow: 0 0 14px rgba(59, 130, 246, 0.35);
+          box-shadow: 0 0 14px rgb(var(--crimson-rgb) / 0.35);
         }
         .movie-card-overlay {
           position: absolute;
@@ -208,7 +208,7 @@ export default function MovieCard({ movie, onClick }) {
         }
         .movie-card-rating {
           font-size: 12.5px;
-          color: var(--accent-bright);
+          color: var(--gold-bright);
           font-weight: 700;
           letter-spacing: 0.02em;
           text-shadow: 0 1px 4px rgba(0,0,0,0.8);
@@ -254,7 +254,7 @@ export default function MovieCard({ movie, onClick }) {
         }
         .movie-card-progress {
           font-size: 11px;
-          color: var(--accent);
+          color: var(--green);
           margin-top: 4px;
           font-weight: 600;
           letter-spacing: 0.02em;

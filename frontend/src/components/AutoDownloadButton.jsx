@@ -98,11 +98,11 @@ export default function AutoDownloadButton({ id, type, title, release_date, labe
         }
         .auto-dl-btn:hover { border-color: var(--accent); color: var(--accent); }
         .auto-dl-wrap.on .auto-dl-btn {
-          background: rgba(62,207,142,0.12);
+          background: rgb(var(--green-rgb) / 0.12);
           border-color: var(--green);
           color: var(--green);
         }
-        .auto-dl-wrap.on .auto-dl-btn:hover { background: rgba(62,207,142,0.2); }
+        .auto-dl-wrap.on .auto-dl-btn:hover { background: rgb(var(--green-rgb) / 0.2); }
         .auto-dl-presets { display: inline-flex; }
         .auto-dl-preset {
           background: transparent; border: 1px solid var(--border);

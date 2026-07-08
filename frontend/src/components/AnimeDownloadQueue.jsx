@@ -115,11 +115,11 @@ export default function AnimeDownloadQueue() {
         .queue-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
         .queue-state { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); }
         .queue-state[data-state="downloading"] { color: var(--green); border-color: var(--green); }
-        .queue-state[data-state="stalledDL"] { color: var(--accent); border-color: var(--accent); }
+        .queue-state[data-state="stalledDL"] { color: var(--gold); border-color: var(--gold); }
         .queue-delete { background: transparent; color: var(--text-muted); padding: 2px; border-radius: 4px; display: flex; }
         .queue-delete:hover { color: var(--red); }
         .queue-progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 6px; overflow: hidden; }
-        .queue-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent-dim), var(--accent)); box-shadow: 0 0 8px var(--accent-glow); border-radius: 2px; transition: width 0.5s var(--ease); }
+        .queue-progress-fill { height: 100%; background: linear-gradient(90deg, rgb(var(--green-rgb) / 0.65), var(--green)); box-shadow: 0 0 8px rgb(var(--green-rgb) / 0.3); border-radius: 2px; transition: width 0.5s var(--ease); }
         .queue-stats { display: flex; gap: 16px; font-size: 11px; color: var(--text-muted); flex-wrap: wrap; }
         .queue-eta { color: var(--accent); font-weight: 500; }
         .queue-eta.stalled { color: var(--text-muted); font-style: italic; }

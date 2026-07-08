@@ -153,7 +153,7 @@ export default function HeroBanner({ movies, onOpen }) {
           z-index: 2;
         }
         .hero-title {
-          font-family: 'Bebas Neue', sans-serif;
+          font-family: 'Anton', sans-serif;
           font-size: clamp(2.2rem, 4.5vw, 4rem);
           line-height: 1;
           letter-spacing: 0.02em;

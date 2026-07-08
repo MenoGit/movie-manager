@@ -535,8 +535,11 @@ export default function Home() {
           border: 1px solid transparent;
           color: var(--text-muted);
           padding: 8px 16px; border-radius: 999px;
-          font-size: 13px; font-weight: 500;
-          letter-spacing: 0.01em;
+          font-size: 13px;
+          font-family: 'Anton', sans-serif;
+          font-weight: 400;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
           display: flex; align-items: center; gap: 6px;
           transition: all var(--dur-fast) var(--ease);
         }
@@ -558,7 +561,7 @@ export default function Home() {
         }
         .filters-toggle.has-active {
           color: var(--accent-bright);
-          border-color: rgba(232, 160, 48, 0.5);
+          border-color: rgb(var(--accent-rgb) / 0.5);
           background: var(--accent-soft);
           font-weight: 700;
         }
@@ -602,7 +605,7 @@ export default function Home() {
           transition: all var(--dur-fast) var(--ease);
         }
         .genre-btn:hover, .genre-btn.active {
-          border-color: rgba(232,160,48,0.5); color: var(--accent-bright);
+          border-color: rgb(var(--accent-rgb) / 0.5); color: var(--accent-bright);
           background: var(--accent-soft);
         }
         .streaming-filters {
@@ -618,7 +621,7 @@ export default function Home() {
         }
         .streaming-btn:hover { border-color: var(--border-strong); color: var(--text); }
         .streaming-btn.active {
-          border-color: rgba(232,160,48,0.5); color: var(--accent-bright);
+          border-color: rgb(var(--accent-rgb) / 0.5); color: var(--accent-bright);
           background: var(--accent-soft);
         }
         .movie-grid {
@@ -641,7 +644,7 @@ export default function Home() {
         }
         .watchlist-btn:hover, .watchlist-btn.saved {
           color: var(--accent-bright); border-color: var(--accent-dim);
-          background: rgba(232,160,48,0.18);
+          background: rgb(var(--accent-rgb) / 0.18);
           transform: scale(1.08);
         }
         .sentinel {
@@ -697,7 +700,7 @@ export default function Home() {
           font-weight: 700;
           padding: 2px 10px;
           background: var(--accent-soft);
-          border: 1px solid rgba(232,160,48,0.4);
+          border: 1px solid rgb(var(--accent-rgb) / 0.4);
           border-radius: 999px;
         }
         .filter-clear {

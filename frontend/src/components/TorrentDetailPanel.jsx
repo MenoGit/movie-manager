@@ -38,7 +38,7 @@ const AUDIO_DOTS       = { 'Atmos': 5, 'DTS-HD/TrueHD': 5, 'DDP5.1': 4, 'DTS': 4
 const HDR_DOTS         = { 'DV': 5, 'HDR10+': 4, 'HDR10': 3, 'SDR': 2 }
 const CODEC_DOTS       = { 'AV1': 5, 'x265': 4, 'x264': 3, 'MPEG': 2, 'unknown': 2 }
 
-function Dots({ filled, total = 5, color = 'var(--accent)' }) {
+function Dots({ filled, total = 5, color = 'var(--gold)' }) {
   return (
     <span className="dot-rating">
       {Array.from({ length: total }).map((_, i) => (
@@ -436,7 +436,7 @@ export default function TorrentDetailPanel({ torrent, context, onClose, onDownlo
           width: 56px; height: 56px;
           border-radius: 12px;
           display: flex; align-items: center; justify-content: center;
-          font-family: 'Bebas Neue', sans-serif;
+          font-family: 'Anton', sans-serif;
           font-size: 1.75rem;
           font-weight: 700;
           letter-spacing: 0.04em;
@@ -446,7 +446,7 @@ export default function TorrentDetailPanel({ torrent, context, onClose, onDownlo
         .tdp-verdict { font-size: 15px; font-weight: 600; }
         .tdp-score-line { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
         .tdp-title {
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Rubik', sans-serif;
           font-size: 13px;
           line-height: 1.4;
           font-weight: 500;
@@ -527,8 +527,8 @@ export default function TorrentDetailPanel({ torrent, context, onClose, onDownlo
         }
         .tdp-size-seg { flex: 1; height: 100%; }
         .seg-budget  { background: rgba(168,85,247,0.4); border-radius: 4px 0 0 4px; }
-        .seg-value   { background: rgba(62,207,142,0.5); }
-        .seg-quality { background: rgba(232,160,48,0.5); border-radius: 0 4px 4px 0; }
+        .seg-value   { background: rgb(var(--green-rgb) / 0.5); }
+        .seg-quality { background: rgb(var(--accent-rgb) / 0.5); border-radius: 0 4px 4px 0; }
         .tdp-size-marker {
           position: absolute;
           top: -3px; bottom: -3px;
@@ -551,8 +551,8 @@ export default function TorrentDetailPanel({ torrent, context, onClose, onDownlo
           font-weight: 500;
           display: flex; align-items: center;
         }
-        .tdp-health-green  { background: rgba(62,207,142,0.10); border: 1px solid rgba(62,207,142,0.4); color: var(--green); }
-        .tdp-health-yellow { background: rgba(232,160,48,0.10); border: 1px solid rgba(232,160,48,0.4); color: var(--accent); }
+        .tdp-health-green  { background: rgb(var(--green-rgb) / 0.10); border: 1px solid rgb(var(--green-rgb) / 0.4); color: var(--green); }
+        .tdp-health-yellow { background: rgb(var(--accent-rgb) / 0.10); border: 1px solid rgb(var(--accent-rgb) / 0.4); color: var(--accent); }
         .tdp-health-red    { background: rgba(220,80,80,0.10); border: 1px solid rgba(220,80,80,0.4); color: var(--red); }
 
         .tdp-warnings { display: flex; flex-direction: column; gap: 8px; }

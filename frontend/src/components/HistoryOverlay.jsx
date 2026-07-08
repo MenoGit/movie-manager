@@ -172,7 +172,7 @@ export default function HistoryOverlay({ onClose }) {
           font-size: 10px; font-weight: 700;
           text-transform: uppercase; letter-spacing: 0.04em;
         }
-        .history-type.movie { background: rgba(232,160,48,0.15); color: var(--accent); border: 1px solid rgba(232,160,48,0.4); }
+        .history-type.movie { background: rgb(var(--accent-rgb) / 0.15); color: var(--accent); border: 1px solid rgb(var(--accent-rgb) / 0.4); }
         .history-type.tv    { background: rgba(80,130,220,0.15); color: #6aa8f6; border: 1px solid rgba(80,130,220,0.4); }
         .history-name {
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;

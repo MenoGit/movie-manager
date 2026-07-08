@@ -161,7 +161,7 @@ export default function TVDownloadQueue() {
           background: var(--surface); border: 1px solid var(--border);
         }
         .queue-state[data-state="downloading"] { color: var(--green); border-color: var(--green); }
-        .queue-state[data-state="stalledDL"] { color: var(--accent); border-color: var(--accent); }
+        .queue-state[data-state="stalledDL"] { color: var(--gold); border-color: var(--gold); }
         .queue-delete {
           background: transparent; color: var(--text-muted);
           padding: 2px; border-radius: 4px;
@@ -174,8 +174,8 @@ export default function TVDownloadQueue() {
         }
         .queue-progress-fill {
           height: 100%;
-          background: linear-gradient(90deg, var(--accent-dim), var(--accent));
-          box-shadow: 0 0 8px var(--accent-glow);
+          background: linear-gradient(90deg, rgb(var(--green-rgb) / 0.65), var(--green));
+          box-shadow: 0 0 8px rgb(var(--green-rgb) / 0.3);
           border-radius: 2px; transition: width 0.5s var(--ease);
         }
         .queue-stats {

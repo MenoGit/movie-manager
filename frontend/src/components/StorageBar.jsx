@@ -11,7 +11,7 @@ function formatBytes(bytes) {
 
 function usageColor(percent) {
   if (percent >= 80) return 'var(--red)'
-  if (percent >= 60) return 'var(--accent)'
+  if (percent >= 60) return 'var(--gold)'
   return 'var(--green)'
 }
 
@@ -124,7 +124,7 @@ export default function StorageBar({ pollMs = 5000, compact = false }) {
           height: 100%;
           transition: width 0.6s ease;
         }
-        .seg-movies { background: var(--accent); }
+        .seg-movies { background: var(--gold-dim); }
         .seg-tv     { background: #3b82f6; }
         .seg-other  { background: #6b7280; }
         .storage-legend {
@@ -137,7 +137,7 @@ export default function StorageBar({ pollMs = 5000, compact = false }) {
           width: 8px; height: 8px;
           border-radius: 2px;
         }
-        .dot-movies { background: var(--accent); }
+        .dot-movies { background: var(--gold-dim); }
         .dot-tv     { background: #3b82f6; }
         .dot-other  { background: #6b7280; }
         .dot-free   { background: var(--surface2); border: 1px solid var(--border); }

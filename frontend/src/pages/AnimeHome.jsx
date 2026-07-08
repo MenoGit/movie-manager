@@ -218,13 +218,13 @@ export default function AnimeHome() {
         .search-clear { background: transparent; color: var(--text-muted); padding: 2px 6px; border-radius: 4px; }
         .search-submit { background: var(--accent); color: #000; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; }
         .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
-        .tab { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+        .tab { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 7px 16px; border-radius: 6px; font-size: 13px; font-family: 'Anton', sans-serif; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 400; display: flex; align-items: center; gap: 6px; }
         .tab:hover { border-color: var(--accent); color: var(--accent); }
         .tab.active { background: var(--accent); border-color: var(--accent); color: #000; }
         .filters-toggle { border: 1px solid var(--border); margin-left: 4px; }
         .filters-toggle:hover { color: var(--text); background: var(--surface); }
         .filters-toggle[aria-expanded="true"] { background: var(--surface2); border-color: var(--border-strong); color: var(--text); }
-        .filters-toggle.has-active { color: var(--accent-bright); border-color: rgba(232,160,48,0.5); background: var(--accent-soft); font-weight: 700; }
+        .filters-toggle.has-active { color: var(--accent-bright); border-color: rgb(var(--accent-rgb) / 0.5); background: var(--accent-soft); font-weight: 700; }
         .filter-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--dur-slow) var(--ease); }
         .filter-panel.open { grid-template-rows: 1fr; }
         .filter-panel-inner { overflow: hidden; min-height: 0; }
@@ -232,11 +232,11 @@ export default function AnimeHome() {
         .genre-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 20px; scrollbar-width: none; }
         .genre-scroll::-webkit-scrollbar { display: none; }
         .genre-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); white-space: nowrap; padding: 5px 12px; border-radius: 20px; font-size: 12px; }
-        .genre-btn:hover, .genre-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(232,160,48,0.08); }
+        .genre-btn:hover, .genre-btn.active { border-color: var(--accent); color: var(--accent); background: rgb(var(--accent-rgb) / 0.08); }
         .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
         .movie-card-wrapper { position: relative; }
         .watchlist-btn { position: absolute; bottom: 48px; right: 8px; background: rgba(10,10,15,0.75); border: 1px solid var(--border); color: var(--text-muted); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-        .watchlist-btn:hover, .watchlist-btn.saved { color: var(--accent); border-color: var(--accent); background: rgba(232,160,48,0.15); }
+        .watchlist-btn:hover, .watchlist-btn.saved { color: var(--accent); border-color: var(--accent); background: rgb(var(--accent-rgb) / 0.15); }
         .sentinel { height: 60px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 13px; margin-top: 16px; }
         @media (max-width: 768px) {
           .home { padding: 16px 14px; }

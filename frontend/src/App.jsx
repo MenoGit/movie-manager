@@ -245,12 +245,21 @@ export default function App() {
           padding: 6px 14px;
           border-radius: 5px;
           font-size: 13px;
-          font-weight: 500;
+          font-family: 'Anton', sans-serif;
+          font-weight: 400;
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
           transition: all 0.15s;
           white-space: nowrap;
         }
         .mode-tab:hover { color: var(--text); }
-        .mode-tab.active { background: var(--accent); color: #000; font-weight: 600; }
+        /* Primary nav pops in the brand's decorative crimson — the logo's
+           gold-wordmark-with-crimson-outline split, echoed in the chrome. */
+        .mode-tab.active {
+          background: var(--crimson);
+          color: #14060a;
+          box-shadow: 0 2px 16px rgb(var(--crimson-rgb) / 0.4);
+        }
         .header-actions {
           margin-left: auto;
           display: flex; align-items: center; gap: 8px;

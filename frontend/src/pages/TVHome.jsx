@@ -334,7 +334,7 @@ export default function TVHome() {
         .search-clear { background: transparent; color: var(--text-muted); padding: 2px 6px; border-radius: 4px; }
         .search-submit { background: var(--accent); color: #000; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; }
         .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
-        .tab { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+        .tab { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 7px 16px; border-radius: 6px; font-size: 13px; font-family: 'Anton', sans-serif; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 400; display: flex; align-items: center; gap: 6px; }
         .tab:hover { border-color: var(--accent); color: var(--accent); }
         .tab.active { background: var(--accent); border-color: var(--accent); color: #000; }
         .decade-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -344,11 +344,11 @@ export default function TVHome() {
         .genre-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; }
         .genre-scroll::-webkit-scrollbar { display: none; }
         .genre-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); white-space: nowrap; padding: 5px 12px; border-radius: 20px; font-size: 12px; }
-        .genre-btn:hover, .genre-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(232,160,48,0.08); }
+        .genre-btn:hover, .genre-btn.active { border-color: var(--accent); color: var(--accent); background: rgb(var(--accent-rgb) / 0.08); }
         .streaming-filters { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
         .streaming-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 500; }
         .streaming-btn:hover { border-color: var(--border); color: var(--text); }
-        .streaming-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(232,160,48,0.08); }
+        .streaming-btn.active { border-color: var(--accent); color: var(--accent); background: rgb(var(--accent-rgb) / 0.08); }
         .filter-toolbar { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 20px; }
         .filter-group { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
         .filter-label { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-right: 6px; }
@@ -356,13 +356,13 @@ export default function TVHome() {
         .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
         .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
         .filter-actions { margin-left: auto; }
-        .filter-count { font-size: 11px; color: var(--accent); font-weight: 600; padding: 2px 8px; background: rgba(232,160,48,0.12); border: 1px solid rgba(232,160,48,0.4); border-radius: 10px; }
+        .filter-count { font-size: 11px; color: var(--accent); font-weight: 600; padding: 2px 8px; background: rgb(var(--accent-rgb) / 0.12); border: 1px solid rgb(var(--accent-rgb) / 0.4); border-radius: 10px; }
         .filter-clear { display: inline-flex; align-items: center; gap: 4px; background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 4px 10px; border-radius: 6px; font-size: 12px; }
         .filter-clear:hover { border-color: var(--red); color: var(--red); }
         .filters-toggle { border: 1px solid var(--border); margin-left: 4px; }
         .filters-toggle:hover { color: var(--text); background: var(--surface); }
         .filters-toggle[aria-expanded="true"] { background: var(--surface2); border-color: var(--border-strong); color: var(--text); }
-        .filters-toggle.has-active { color: var(--accent-bright); border-color: rgba(232,160,48,0.5); background: var(--accent-soft); font-weight: 700; }
+        .filters-toggle.has-active { color: var(--accent-bright); border-color: rgb(var(--accent-rgb) / 0.5); background: var(--accent-soft); font-weight: 700; }
         .filter-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--dur-slow) var(--ease); }
         .filter-panel.open { grid-template-rows: 1fr; }
         .filter-panel-inner { overflow: hidden; min-height: 0; }
@@ -370,7 +370,7 @@ export default function TVHome() {
         .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
         .movie-card-wrapper { position: relative; }
         .watchlist-btn { position: absolute; bottom: 48px; right: 8px; background: rgba(10,10,15,0.75); border: 1px solid var(--border); color: var(--text-muted); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-        .watchlist-btn:hover, .watchlist-btn.saved { color: var(--accent); border-color: var(--accent); background: rgba(232,160,48,0.15); }
+        .watchlist-btn:hover, .watchlist-btn.saved { color: var(--accent); border-color: var(--accent); background: rgb(var(--accent-rgb) / 0.15); }
         .sentinel { height: 60px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 13px; margin-top: 16px; }
 
         @media (max-width: 768px) {

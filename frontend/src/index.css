@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Rubik:wght@300;400;500;600;700&display=swap');
 
 /* ── FilmVault design tokens ─────────────────────────────────────────────
    Rich & cinematic: deep near-black base, one warm amber accent, poster
@@ -6,30 +6,47 @@
    single deceleration curve. */
 :root {
   /* Color — base */
-  --bg: #07070b;
-  --bg-raised: #0c0c13;
-  --surface: #12121b;
-  --surface2: #1a1a26;
+  --bg: #050409;
+  --bg-raised: #0b0810;
+  --surface: #120e1b;
+  --surface2: #1b1426;
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.16);
 
-  /* Color — accent: brand gold, sampled from the logo art (avg #ea9b00,
-     highlight #f9bf00). --accent-rgb is the raw triplet every translucent
-     accent use derives from; retheming = overriding this family only. */
-  --accent: #f0a600;
-  --accent-bright: #f9bf00;
-  --accent-dim: #b97e00;
-  --accent-rgb: 240 166 0;
+  /* Three-role color system:
+     --accent (pink/salmon)  = INTERACTIVE: active tabs, buttons, hovers,
+                               focus rings, selected states
+     --gold                  = RATINGS/QUALITY ONLY: stars, popcorn,
+                               best-pick, quality tags
+     --green                 = STATUS: in-library, storage %, success
+     --accent-rgb drives every translucent interactive use. */
+  --accent: #f4437a;
+  --accent-bright: #ff6f9c;
+  --accent-dim: #c2285a;
+  --accent-rgb: 244 67 122;
   --accent-glow: rgb(var(--accent-rgb) / 0.22);
   --accent-soft: rgb(var(--accent-rgb) / 0.1);
+
+  /* Gold — brand gold from the logo, reserved for ratings/quality */
+  --gold: #f0a600;
+  --gold-bright: #f9bf00;
+  --gold-dim: #b97e00;
+  --gold-rgb: 240 166 0;
 
   /* Color — text */
   --text: #f2efe9;
   --text-muted: #8f8ba3;
   --text-faint: #5c5972;
 
-  /* Color — status */
-  --green: #3ecf8e;
+  /* Color — brand secondary: decorative crimson from the logo outlines.
+     Deliberately separate from the semantic --red (errors/warnings). */
+  --crimson: #ee2957;
+  --crimson-bright: #ff5480;
+  --crimson-rgb: 238 41 87;
+
+  /* Color — status (vivid HxH-leaning green on the plum base) */
+  --green: #46d369;
+  --green-rgb: 70 211 105;
   --red: #e85555;
 
   /* Radii */
@@ -59,7 +76,7 @@ body {
   background:
     radial-gradient(1200px 500px at 50% -10%, rgb(var(--accent-rgb) / 0.045), transparent 70%);
   color: var(--text);
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Rubik', sans-serif;
   font-size: 15px;
   line-height: 1.5;
   min-height: 100vh;
@@ -104,9 +121,9 @@ body::before {
   }
 }
 
-/* Type scale: Bebas for display, DM Sans for everything else.
-   12 / 13 / 15 / 17 / 22 / 28 / 40 */
-h1, h2, h3 { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.045em; font-weight: 400; }
+/* Type scale: Anton for display (shonen title-card energy), Rubik for
+   everything else. 12 / 13 / 15 / 17 / 22 / 28 / 40 */
+h1, h2, h3 { font-family: 'Anton', sans-serif; letter-spacing: 0.03em; font-weight: 400; }
 h1 { font-size: 40px; line-height: 1.05; }
 h2 { font-size: 28px; line-height: 1.1; }
 h3 { font-size: 22px; line-height: 1.15; }
@@ -121,7 +138,7 @@ h3 { font-size: 22px; line-height: 1.15; }
 button {
   cursor: pointer;
   border: none;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Rubik', sans-serif;
 }
 button:focus-visible, input:focus-visible {
   outline: 2px solid var(--accent-dim);
@@ -129,7 +146,7 @@ button:focus-visible, input:focus-visible {
 }
 
 input {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Rubik', sans-serif;
 }
 
 /* Skeleton shimmer — poster-shaped placeholders while images load */

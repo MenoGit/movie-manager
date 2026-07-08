@@ -488,7 +488,7 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
           TV-only rules below: seasons/episodes UI, scope chip, save hint,
           pack/episode tags, plus the intentional search-row override. */}
       <style>{`
-        .tag-accent { background: rgba(232,160,48,0.15); border-color: var(--accent); color: var(--accent); }
+        .tag-accent { background: rgb(var(--accent-rgb) / 0.15); border-color: var(--accent); color: var(--accent); }
         .library-progress-bar {
           width: 100%;
           max-width: 320px;
@@ -500,7 +500,7 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
         }
         .library-progress-fill {
           height: 100%;
-          background: var(--accent);
+          background: var(--green);
           transition: width 0.4s ease;
         }
 
@@ -508,9 +508,9 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
         .season-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
         .season-btn:hover { border-color: var(--accent); color: var(--accent); }
         .season-btn.active { background: var(--accent); border-color: var(--accent); color: #000; }
-        .season-btn.season-complete { border-color: rgba(62,207,142,0.5); color: var(--green); }
+        .season-btn.season-complete { border-color: rgb(var(--green-rgb) / 0.5); color: var(--green); }
         .season-btn.season-complete.active { background: var(--green); border-color: var(--green); color: #000; }
-        .season-btn.season-partial { border-color: rgba(232,160,48,0.5); }
+        .season-btn.season-partial { border-color: rgb(var(--accent-rgb) / 0.5); }
         .season-frac { font-size: 10px; font-weight: 700; color: var(--accent); }
         .season-btn.active .season-frac { color: #000; }
         .season-actions { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
@@ -555,14 +555,14 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
           padding: 12px; background: var(--surface2);
           border: 1px solid var(--border); border-radius: 8px;
         }
-        .episode-row.in-library { border-color: rgba(62,207,142,0.3); }
+        .episode-row.in-library { border-color: rgb(var(--green-rgb) / 0.3); }
         .episode-thumb { position: relative; width: 140px; aspect-ratio: 16/9; background: var(--surface); border-radius: 4px; overflow: hidden; }
         .episode-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .episode-thumb-fallback { width: 100%; height: 100%; background: linear-gradient(135deg, var(--surface), var(--surface2)); }
         .episode-have { position: absolute; top: 4px; right: 4px; background: var(--green); color: #000; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
         .episode-main { min-width: 0; }
         .episode-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
-        .episode-num { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.04em; color: var(--accent); font-size: 14px; }
+        .episode-num { font-family: 'Anton', sans-serif; letter-spacing: 0.04em; color: var(--gold); font-size: 14px; }
         .episode-title { font-size: 13px; font-weight: 600; }
         .episode-date { font-size: 11px; color: var(--text-muted); }
         .episode-overview { font-size: 12px; color: var(--text-muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0; }

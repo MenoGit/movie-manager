@@ -194,12 +194,12 @@ export default function ContentRow({ title, subtitle, fetcher, onOpen, variant =
         .card-fresh-rip {
           position: absolute; top: 6px; left: 6px;
           display: inline-flex; align-items: center; gap: 3px;
-          background: #3b82f6; color: #fff;
+          background: var(--crimson); color: #fff;
           padding: 2px 6px;
           border-radius: 3px;
           font-size: 10px; font-weight: 700;
           z-index: 2;
-          box-shadow: 0 0 10px rgba(59,130,246,0.45);
+          box-shadow: 0 0 10px rgb(var(--crimson-rgb) / 0.45);
         }
         .card-overlay {
           position: absolute; left: 0; right: 0; bottom: 0;
@@ -228,7 +228,7 @@ export default function ContentRow({ title, subtitle, fetcher, onOpen, variant =
           display: flex; gap: 8px; align-items: center;
         }
         .card-overlay-rating {
-          color: var(--accent);
+          color: var(--gold);
           font-weight: 600;
         }
         .card-overlay-popcorn {
@@ -250,7 +250,7 @@ export default function ContentRow({ title, subtitle, fetcher, onOpen, variant =
         }
         .card-overlay-progress {
           font-size: 10px;
-          color: var(--accent);
+          color: var(--green);
           margin-top: 2px;
           font-weight: 500;
           white-space: nowrap;
@@ -266,7 +266,7 @@ export default function ContentRow({ title, subtitle, fetcher, onOpen, variant =
           flex: 0 0 auto;
         }
         .top10-rank {
-          font-family: 'Bebas Neue', sans-serif;
+          font-family: 'Anton', sans-serif;
           font-size: 11rem;
           line-height: 0.85;
           color: var(--surface);
