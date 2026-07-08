@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import './index.css'
-import { Film, LayoutGrid, Tv, Clock, Settings as SettingsIcon, Bell } from 'lucide-react'
+import { LayoutGrid, Tv, Clock, Settings as SettingsIcon, Bell } from 'lucide-react'
 import Home from './pages/Home'
 import Browse from './pages/Browse'
 import TVHome from './pages/TVHome'
@@ -123,10 +123,9 @@ export default function App() {
   return (
     <div>
       <header className="app-header">
-        <div className="app-logo">
-          <Film size={22} />
-          <span>FILMVAULT</span>
-        </div>
+        <a className="app-logo" href="/" aria-label="FilmVault home">
+          <img src="/assets/logo-header.png" alt="FilmVault" />
+        </a>
         <div className="mode-tabs" role="tablist" aria-label="Content">
           <button
             className={`mode-tab ${mode === 'movies' ? 'active' : ''}`}
@@ -223,12 +222,15 @@ export default function App() {
           position: sticky; top: 0; z-index: 50;
         }
         .app-logo {
-          display: flex; align-items: center; gap: 10px;
-          font-family: 'Bebas Neue', sans-serif;
-          font-size: clamp(1.05rem, 4vw, 1.5rem);
-          letter-spacing: 0.1em;
-          color: var(--accent);
-          white-space: nowrap;
+          display: flex; align-items: center;
+          flex-shrink: 0;
+          line-height: 0;
+        }
+        .app-logo img {
+          height: 42px;
+          width: auto;
+          display: block;
+          filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
         }
         .mode-tabs {
           display: flex; gap: 2px;
@@ -313,6 +315,7 @@ export default function App() {
           /* Header reflows to two rows: logo + actions, then a full-width
              thumb-sized segmented control. */
           .app-header { padding: 10px 14px 8px; gap: 10px; flex-wrap: wrap; }
+          .app-logo img { height: 32px; }
           .mode-tabs {
             order: 3;
             flex-basis: 100%;
