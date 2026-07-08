@@ -149,19 +149,24 @@ input {
   font-family: 'Rubik', sans-serif;
 }
 
-/* Skeleton shimmer — poster-shaped placeholders while images load */
+/* Skeleton shimmer — poster-shaped placeholders while images load.
+   The brand gold light-streak sweeps across on top of the base sheen
+   (the asset's alpha is pre-dimmed to 45% so it stays subtle). */
 @keyframes shimmer {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
+  from { background-position: -130% 50%, 200% 0; }
+  to { background-position: 230% 50%, -200% 0; }
 }
 .skeleton {
-  background: linear-gradient(
-    105deg,
-    var(--surface) 40%,
-    var(--surface2) 50%,
-    var(--surface) 60%
-  );
-  background-size: 200% 100%;
+  background:
+    url('/assets/shimmer-streak.png') no-repeat,
+    linear-gradient(
+      105deg,
+      var(--surface) 40%,
+      var(--surface2) 50%,
+      var(--surface) 60%
+    );
+  background-size: 90% auto, 200% 100%;
+  background-position: -130% 50%, 200% 0;
   animation: shimmer 1.6s linear infinite;
 }
 

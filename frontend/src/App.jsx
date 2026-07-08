@@ -225,11 +225,27 @@ export default function App() {
           display: flex; align-items: center;
           flex-shrink: 0;
           line-height: 0;
+          position: relative;
+        }
+        /* Brand aura: low-opacity gold energy swirl behind the logo — the
+           one focal glow in the chrome. Decorative only. */
+        .app-logo::before {
+          content: '';
+          position: absolute;
+          left: 50%; top: 50%;
+          width: 300px; height: 140px;
+          transform: translate(-50%, -50%);
+          background: url('/assets/aura-glow.png') center / contain no-repeat;
+          opacity: 0.5;
+          pointer-events: none;
+          z-index: 0;
         }
         .app-logo img {
           height: 42px;
           width: auto;
           display: block;
+          position: relative;
+          z-index: 1;
           filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
         }
         .mode-tabs {
@@ -325,6 +341,7 @@ export default function App() {
              thumb-sized segmented control. */
           .app-header { padding: 10px 14px 8px; gap: 10px; flex-wrap: wrap; }
           .app-logo img { height: 32px; }
+          .app-logo::before { width: 210px; height: 100px; }
           .mode-tabs {
             order: 3;
             flex-basis: 100%;
