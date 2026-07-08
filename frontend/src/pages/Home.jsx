@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { Search, Bookmark, BookmarkCheck, X as XIcon, SlidersHorizontal } from 'lucide-react'
 import MovieCard from '../components/MovieCard'
 import MovieModal from '../components/MovieModal'
@@ -9,6 +10,7 @@ import {
   getByStreaming, getByGenre, getGenres, searchMovies, getRecentlyAdded,
   getFreshRips,
 } from '../api'
+import useHeaderSearchSlot from '../useHeaderSearchSlot'
 
 const STREAMING_FILTERS = [
   { id: 'all', label: 'All' },
@@ -286,9 +288,8 @@ export default function Home() {
   const displayMovies = showWatchlist ? watchlist : movies
   const showDecadePicker = !isSearching && !showWatchlist && tab === 'decades'
 
-  return (
-    <div className="home">
-      <div className="search-container">
+  const headerSlot = useHeaderSearchSlot()
+  const searchForm = (
         <form className="search-form" onSubmit={handleSearch}>
           <Search size={18} className="search-icon" />
           <input
@@ -302,7 +303,13 @@ export default function Home() {
           )}
           <button type="submit" className="search-submit">Search</button>
         </form>
-      </div>
+  )
+
+  return (
+    <div className="home">
+      {headerSlot
+        ? createPortal(searchForm, headerSlot)
+        : <div className="search-container">{searchForm}</div>}
 
       <DownloadQueue />
 

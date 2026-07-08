@@ -149,6 +149,7 @@ export default function App() {
             Anime
           </button>
         </div>
+        <div className="header-search-slot" />
         <div className="header-actions">
           <button
             className="icon-btn icon-btn-badged"
@@ -276,6 +277,20 @@ export default function App() {
           color: #14060a;
           box-shadow: 0 2px 16px rgb(var(--crimson-rgb) / 0.4);
         }
+        /* Desktop: pages portal their search form here (useHeaderSearchSlot),
+           filling the gap between the mode tabs and the icon row. Empty and
+           hidden on mobile — the form renders below the header there. */
+        .header-search-slot {
+          flex: 1 1 auto;
+          min-width: 0;
+          display: flex;
+          margin: 0 8px;
+        }
+        .header-search-slot .search-form {
+          flex: 1;
+          min-width: 0;
+          padding: 6px 8px 6px 16px;
+        }
         .header-actions {
           margin-left: auto;
           display: flex; align-items: center; gap: 8px;
@@ -341,6 +356,7 @@ export default function App() {
              thumb-sized segmented control. */
           .app-header { padding: 10px 14px 8px; gap: 10px; flex-wrap: wrap; }
           .app-logo img { height: 32px; }
+          .header-search-slot { display: none; }
           .app-logo::before { width: 210px; height: 100px; }
           .mode-tabs {
             order: 3;

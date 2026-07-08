@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { Search, Bookmark, BookmarkCheck, X as XIcon, SlidersHorizontal } from 'lucide-react'
 import MovieCard from '../components/MovieCard'
 import TVShowModal from '../components/TVShowModal'
@@ -8,6 +9,7 @@ import {
   getAllTimeBestTV, getHiddenGemsTV, getTVByDecade, getTVByGenre, getTVByNetwork,
   getTVGenres, searchTV,
 } from '../api'
+import useHeaderSearchSlot from '../useHeaderSearchSlot'
 
 // TMDb network IDs for streaming-style filter row
 const TV_NETWORKS = [
@@ -201,16 +203,21 @@ export default function TVHome() {
   const displayShows = showWatchlist ? watchlist : shows
   const showDecadePicker = !isSearching && !showWatchlist && tab === 'decades'
 
-  return (
-    <div className="home">
-      <div className="search-container">
+  const headerSlot = useHeaderSearchSlot()
+  const searchForm = (
         <form className="search-form" onSubmit={handleSearch}>
           <Search size={18} className="search-icon" />
           <input className="search-input" placeholder="Search any TV show..." value={searchQ} onChange={e => setSearchQ(e.target.value)} />
           {isSearching && <button type="button" className="search-clear" onClick={clearSearch}>✕</button>}
           <button type="submit" className="search-submit">Search</button>
         </form>
-      </div>
+  )
+
+  return (
+    <div className="home">
+      {headerSlot
+        ? createPortal(searchForm, headerSlot)
+        : <div className="search-container">{searchForm}</div>}
 
       <TVDownloadQueue />
 

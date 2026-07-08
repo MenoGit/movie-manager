@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { Search, Bookmark, BookmarkCheck, SlidersHorizontal } from 'lucide-react'
 import MovieCard from '../components/MovieCard'
 import AnimeModal from '../components/AnimeModal'
@@ -8,6 +9,7 @@ import {
   getTrendingAnime, getPopularAnime, getTopRatedAnime, getAiringAnime,
   getAnimeMovies, getAnimeGenres, getAnimeBySubgenre, searchAnime,
 } from '../api'
+import useHeaderSearchSlot from '../useHeaderSearchSlot'
 
 const TABS = [
   { id: 'trending', label: 'Trending' },
@@ -124,16 +126,21 @@ export default function AnimeHome() {
 
   const displayItems = showWatchlist ? watchlist : items
 
-  return (
-    <div className="home">
-      <div className="search-container">
+  const headerSlot = useHeaderSearchSlot()
+  const searchForm = (
         <form className="search-form" onSubmit={handleSearch}>
           <Search size={18} className="search-icon" />
           <input className="search-input" placeholder="Search any anime..." value={searchQ} onChange={e => setSearchQ(e.target.value)} />
           {isSearching && <button type="button" className="search-clear" onClick={clearSearch}>✕</button>}
           <button type="submit" className="search-submit">Search</button>
         </form>
-      </div>
+  )
+
+  return (
+    <div className="home">
+      {headerSlot
+        ? createPortal(searchForm, headerSlot)
+        : <div className="search-container">{searchForm}</div>}
 
       <AnimeDownloadQueue />
 
