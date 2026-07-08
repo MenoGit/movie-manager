@@ -20,10 +20,10 @@
                                best-pick, quality tags
      --green                 = STATUS: in-library, storage %, success
      --accent-rgb drives every translucent interactive use. */
-  --accent: #f4437a;
-  --accent-bright: #ff6f9c;
-  --accent-dim: #c2285a;
-  --accent-rgb: 244 67 122;
+  --accent: #f0556c;
+  --accent-bright: #ff8093;
+  --accent-dim: #c03a52;
+  --accent-rgb: 240 85 108;
   --accent-glow: rgb(var(--accent-rgb) / 0.22);
   --accent-soft: rgb(var(--accent-rgb) / 0.1);
 

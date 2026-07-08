@@ -126,13 +126,19 @@ export default function DownloadQueue() {
 
       <style>{`
         .queue-panel {
-          /* Brand art behind the queue at near-full brightness (user's
-             call — readability is carried by the storage sub-box's own
-             opaque surface and text shadows, not by dimming the art).
-             94% size = slightly zoomed out vs cover, with a thin dark
-             inset at the sides; clips to the border-radius natively. */
+          /* Brand art with a directional scrim: heavy over the top-left
+             (the Download Queue title + Refresh button) and the upper band
+             (storage stats), falling away toward the middle/right so the
+             art shows through the open area — framed, not floating. */
           background:
-            linear-gradient(rgb(10 10 14 / 0.18), rgb(10 10 14 / 0.18)),
+            linear-gradient(115deg,
+              rgb(5 4 9 / 0.92) 0%,
+              rgb(5 4 9 / 0.8) 28%,
+              rgb(5 4 9 / 0.35) 58%,
+              rgb(5 4 9 / 0.18) 100%),
+            linear-gradient(180deg,
+              rgb(5 4 9 / 0.55) 0%,
+              rgb(5 4 9 / 0.15) 55%),
             url('/assets/queue-bg.jpg') center / 94% no-repeat,
             var(--surface);
           border: 1px solid var(--border);
