@@ -129,7 +129,11 @@ export default function DownloadQueue() {
           /* Brand art with a directional scrim: heavy over the top-left
              (the Download Queue title + Refresh button) and the upper band
              (storage stats), falling away toward the middle/right so the
-             art shows through the open area — framed, not floating. */
+             art shows through the open area — framed, not floating.
+             queue-bg-faded.jpg has the edge dissolve BAKED IN: all four
+             edges fade into the panel surface color (#120e1b via PIL
+             smoothstep mask), so the art melts into the panel instead of
+             ending in a hard rectangle. */
           background:
             linear-gradient(115deg,
               rgb(5 4 9 / 0.92) 0%,
@@ -139,7 +143,7 @@ export default function DownloadQueue() {
             linear-gradient(180deg,
               rgb(5 4 9 / 0.55) 0%,
               rgb(5 4 9 / 0.15) 55%),
-            url('/assets/queue-bg.jpg') center / 94% no-repeat,
+            url('/assets/queue-bg-faded.jpg') center / 94% no-repeat,
             var(--surface);
           border: 1px solid var(--border);
           border-radius: var(--radius);
