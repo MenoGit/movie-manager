@@ -13,13 +13,13 @@
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.16);
 
-  /* Color — accent (warm amber). --accent-rgb is the raw triplet every
-     translucent accent use derives from; retheming = overriding this
-     family and nothing else (see the data-theme blocks below). */
-  --accent: #e8a030;
-  --accent-bright: #f5b445;
-  --accent-dim: #b07820;
-  --accent-rgb: 232 160 48;
+  /* Color — accent: brand gold, sampled from the logo art (avg #ea9b00,
+     highlight #f9bf00). --accent-rgb is the raw triplet every translucent
+     accent use derives from; retheming = overriding this family only. */
+  --accent: #f0a600;
+  --accent-bright: #f9bf00;
+  --accent-dim: #b97e00;
+  --accent-rgb: 240 166 0;
   --accent-glow: rgb(var(--accent-rgb) / 0.22);
   --accent-soft: rgb(var(--accent-rgb) / 0.1);
 
@@ -47,28 +47,6 @@
   --dur-fast: 150ms;
   --dur: 280ms;
   --dur-slow: 450ms;
-}
-
-/* ── Accent theme candidates ──────────────────────────────────────────────
-   Preview with ?theme=crimson|violet|teal (main.jsx sets data-theme).
-   Only the accent family changes; the near-black base stays put. */
-:root[data-theme="crimson"] {
-  --accent: #e84055;
-  --accent-bright: #ff6073;
-  --accent-dim: #b02a3c;
-  --accent-rgb: 232 64 85;
-}
-:root[data-theme="violet"] {
-  --accent: #a875f0;
-  --accent-bright: #c095ff;
-  --accent-dim: #7d52c4;
-  --accent-rgb: 168 117 240;
-}
-:root[data-theme="teal"] {
-  --accent: #2fc9a0;
-  --accent-bright: #52e6bc;
-  --accent-dim: #1f9678;
-  --accent-rgb: 47 201 160;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
