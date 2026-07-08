@@ -75,7 +75,8 @@ export default function DownloadQueue() {
   }
 
   return (
-    <div className="queue-panel">
+    <section className="queue-area">
+      <div className="queue-panel">
       <div className="queue-header">
         <h3 className="section-title">Download Queue</h3>
         <div className="queue-actions">
@@ -123,38 +124,57 @@ export default function DownloadQueue() {
           ))}
         </div>
       )}
+      </div>
+      {/* Character frame: five individual cutouts positioned around the
+          card. All decorative (aria-hidden, pointer-events: none). */}
+      <img className="qchar qchar-kurapika" src="/assets/kurapika-cut.webp" alt="" aria-hidden="true" />
+      <img className="qchar qchar-gon" src="/assets/gon-cut.webp" alt="" aria-hidden="true" />
+      <img className="qchar qchar-killua" src="/assets/killua-cut.webp" alt="" aria-hidden="true" />
+      <img className="qchar qchar-hisoka" src="/assets/hisoka-cut.webp" alt="" aria-hidden="true" />
+      <img className="qchar qchar-leorio" src="/assets/leorio-cut.webp" alt="" aria-hidden="true" />
 
       <style>{`
+        /* The queue is a plain dark self-contained card. Five character
+           cutouts are absolutely positioned around it, each at its natural
+           aspect (width-only sizing, height auto): Kurapika and Killua rise
+           past the top corners, Gon perches on the top edge, Hisoka and
+           Leorio ground the bottom corners. All pointer-events: none; the
+           area margins reserve the spill so nothing clips. Hidden below
+           768px — the card would be overwhelmed on a phone. */
+        .queue-area {
+          position: relative;
+          margin: 196px 0 64px;
+        }
         .queue-panel {
-          /* Brand art with a directional scrim: heavy over the top-left
-             (the Download Queue title + Refresh button) and the upper band
-             (storage stats), falling away toward the middle/right so the
-             art shows through the open area — framed, not floating.
-             queue-bg-faded.jpg has the edge dissolve BAKED IN: all four
-             edges fade into the panel surface color (#120e1b via PIL
-             smoothstep mask), so the art melts into the panel instead of
-             ending in a hard rectangle. */
-          background:
-            linear-gradient(115deg,
-              rgb(5 4 9 / 0.92) 0%,
-              rgb(5 4 9 / 0.8) 28%,
-              rgb(5 4 9 / 0.35) 58%,
-              rgb(5 4 9 / 0.18) 100%),
-            linear-gradient(180deg,
-              rgb(5 4 9 / 0.55) 0%,
-              rgb(5 4 9 / 0.15) 55%),
-            url('/assets/queue-bg-faded.jpg') center / 94% no-repeat,
-            var(--surface);
+          position: relative;
+          z-index: 1;
+          background: var(--surface);
           border: 1px solid var(--border);
           border-radius: var(--radius);
-          padding: 20px;
-          margin-bottom: 32px;
+          /* full-width card; the horizontal padding pushes ALL inner
+             content into the clear middle zone, leaving the card's outer
+             edges as empty safe areas the flanking characters overlap
+             (left clears Kurapika/Hisoka, right clears Leorio). */
+          padding: 20px 250px 20px 180px;
           box-shadow: var(--shadow-1);
         }
+        .qchar {
+          position: absolute;
+          height: auto;
+          pointer-events: none;
+          z-index: 2;
+          filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.55));
+        }
+        /* bottom: calc(100% - Npx) anchors a character N px of overlap onto
+           the card's top edge, with the rest rising above it. */
+        .qchar-kurapika { left: -14px; bottom: calc(100% - 48px); width: 150px; }
+        .qchar-killua { right: -10px; bottom: calc(100% - 52px); width: 84px; }
+        .qchar-gon { left: 50%; transform: translateX(-50%); bottom: calc(100% - 8px); width: 170px; }
+        .qchar-hisoka { left: -18px; bottom: -34px; width: 160px; }
+        .qchar-leorio { right: -20px; bottom: -28px; width: 230px; }
         .queue-header {
           display: flex; justify-content: space-between; align-items: center;
           margin-bottom: 16px;
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 12px rgba(0, 0, 0, 0.6);
         }
         .queue-actions { display: flex; align-items: center; gap: 12px; }
         .queue-storage {
@@ -174,12 +194,7 @@ export default function DownloadQueue() {
           transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
         }
         .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
-        .queue-empty {
-          color: var(--text);
-          font-size: 13px; text-align: center; padding: 12px 0;
-          /* sits directly on the bright art — shadow keeps it legible */
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 12px rgba(0, 0, 0, 0.7);
-        }
+        .queue-empty { color: var(--text-muted); font-size: 13px; text-align: center; padding: 6px 0; }
         .queue-list { display: flex; flex-direction: column; gap: 12px; }
         .queue-item {
           background: var(--surface2);
@@ -228,7 +243,9 @@ export default function DownloadQueue() {
         .queue-eta { color: var(--accent); font-weight: 500; }
         .queue-eta.stalled { color: var(--text-muted); font-style: italic; }
         @media (max-width: 768px) {
+          .queue-area { margin: 16px 0 32px; }
           .queue-panel { padding: 14px; }
+          .qchar { display: none; }
           .queue-header { flex-wrap: wrap; gap: 10px; }
           .queue-actions { flex-wrap: wrap; }
         }
@@ -246,6 +263,6 @@ export default function DownloadQueue() {
           .refresh-btn { font-size: 12px; }
         }
       `}</style>
-    </div>
+    </section>
   )
 }
