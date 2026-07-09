@@ -12,8 +12,11 @@ Smart scheduling per item:
 import asyncio
 from datetime import datetime, timezone, timedelta
 
+import os
+
+from config import settings
 from services import (
-    prowlarr, qbittorrent, scoring,
+    prowlarr, scoring, safe_download,
     auto_watchlist, history, library,
     tmdb_tv,
 )
@@ -75,6 +78,7 @@ async def _check_movie(item: dict) -> dict | None:
         except (ValueError, TypeError):
             pass
     results = await prowlarr.search_torrents(title, year=year)
+    results = _without_blocked(results, item)
     if not results:
         return None
     ctx = {"mode": "movie"}
@@ -126,6 +130,7 @@ async def _check_tv(item: dict) -> dict | None:
         except (ValueError, TypeError):
             pass
     results = await prowlarr.search_tv_torrents(title, season=target_season, year=year)
+    results = _without_blocked(results, item)
     if not results:
         return None
 
@@ -145,7 +150,45 @@ async def _check_tv(item: dict) -> dict | None:
     pick = picks.get(preset)
     if not pick or pick.get("seeders", 0) < item.get("min_seeds", 20):
         return None
-    return {**pick, "_target_season": target_season}
+    return {**pick, "_target_season": target_season, "_episode_count": episode_count}
+
+
+def _without_blocked(results: list, item: dict) -> list:
+    """Drop releases a previous cycle safety-blocked/warned for this item, so
+    the scorer picks the next-best candidate instead of retrying the same one."""
+    skipped = set(item.get("safety_skipped") or [])
+    if not skipped:
+        return results
+    return [t for t in results if t.get("title") not in skipped]
+
+
+async def _safe_auto_add(item: dict, pick: dict, *, save_path: str,
+                         category: str, mode: str,
+                         episode_count: int | None = None) -> bool:
+    """Add an auto-downloader pick through the safety gate. Unattended adds
+    NEVER force-override: any block or warn skips the release, records the
+    reason on the watchlist item (last_error, visible in the UI), and
+    remembers the title so the next cycle tries a different candidate."""
+    verdict = await safe_download.guarded_add(
+        url=pick["magnet"], save_path=save_path, category=category,
+        release_title=pick.get("title"), size=pick.get("size"), mode=mode,
+        episode_count=episode_count, info_hash=pick.get("info_hash"),
+        force=False,
+    )
+    if verdict["status"] == "added":
+        return True
+    print(f"[auto-downloader] SAFETY {verdict['status'].upper()} "
+          f"{item.get('title')!r} → {pick.get('title')!r}: {verdict.get('reason')}", flush=True)
+    skipped = list(item.get("safety_skipped") or [])
+    if pick.get("title") and pick["title"] not in skipped:
+        skipped.append(pick["title"])
+    await auto_watchlist.update(item["id"], item["type"], {
+        "last_checked": auto_watchlist.now_iso(),
+        "last_error": f"safety {verdict['status']}: {verdict.get('reason')} "
+                      f"({pick.get('title', '')[:80]})"[:200],
+        "safety_skipped": skipped[-20:],  # keep the list bounded
+    })
+    return False
 
 
 # ─── Main check loop ───────────────────────────────────────────────────────
@@ -170,7 +213,11 @@ async def check_watchlist() -> dict:
             if item["type"] == "movie":
                 pick = await _check_movie(item)
                 if pick:
-                    await qbittorrent.add_torrent(pick["magnet"], item["title"])
+                    safe_title = "".join(c for c in item["title"] if c.isalnum() or c in " ._-").strip()
+                    save_path = os.path.join(settings.movies_path, safe_title)
+                    if not await _safe_auto_add(item, pick, save_path=save_path,
+                                                category="movies", mode="movie"):
+                        continue
                     await auto_watchlist.update(item["id"], item["type"], {
                         "status": "downloaded",
                         "downloaded_title": pick["title"],
@@ -195,7 +242,14 @@ async def check_watchlist() -> dict:
                 pick = await _check_tv(item)
                 if pick:
                     season = pick.pop("_target_season", 1)
-                    await qbittorrent.add_tv_torrent(pick["magnet"], item["title"], season)
+                    episode_count = pick.pop("_episode_count", None)
+                    safe_show = "".join(c for c in item["title"] if c.isalnum() or c in " ._-").strip()
+                    save_path = os.path.join(settings.tv_shows_path, safe_show,
+                                             f"Season {int(season):02d}")
+                    if not await _safe_auto_add(item, pick, save_path=save_path,
+                                                category="tv", mode="tv",
+                                                episode_count=episode_count):
+                        continue
                     await auto_watchlist.update(item["id"], item["type"], {
                         "last_checked": auto_watchlist.now_iso(),
                         "last_downloaded_season": season,

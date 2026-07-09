@@ -206,3 +206,88 @@ class TestGuardedAddFlow:
         result = asyncio.run(add_torrent(
             AddTorrentRequest(magnet=MAGNET, movie_title="Heat")))
         assert result["status"] == "blocked"
+
+
+# ─── Auto-downloader path: unattended adds go through the same gate ─────────
+
+class TestAutoDownloaderGate:
+    """The watchlist auto-downloader must route every add through
+    guarded_add, never force, and on block/warn record the reason on the
+    item and remember the release so the next cycle tries another one."""
+
+    def _wire(self, monkeypatch, verdict, pick=None, item=None):
+        from services import auto_downloader, auto_watchlist, safe_download, history
+
+        item = item or {
+            "id": 949, "type": "movie", "title": "Heat", "status": "waiting",
+            "release_date": "1995-12-15", "last_checked": None,
+        }
+        pick = pick or {
+            "magnet": "magnet:?xt=urn:btih:" + "c" * 40,
+            "title": "Heat.1995.1080p.BluRay",
+            "size": 8 * GB, "info_hash": "c" * 40, "seeders": 50,
+            "_score": {"score": 40, "tier": "value",
+                       "parsed": {"source": "BluRay"}},
+        }
+        calls = {"guarded": [], "updates": [], "history": []}
+
+        async def fake_guarded_add(**kwargs):
+            calls["guarded"].append(kwargs)
+            return dict(verdict)
+        async def fake_read_all():
+            return [item]
+        async def fake_update(item_id, item_type, patch):
+            calls["updates"].append(patch)
+        async def fake_check_movie(_item):
+            return dict(pick)
+        async def fake_history_append(entry):
+            calls["history"].append(entry)
+
+        monkeypatch.setattr(safe_download, "guarded_add", fake_guarded_add)
+        monkeypatch.setattr(auto_watchlist, "read_all", fake_read_all)
+        monkeypatch.setattr(auto_watchlist, "update", fake_update)
+        monkeypatch.setattr(auto_downloader, "_check_movie", fake_check_movie)
+        monkeypatch.setattr(history, "append", fake_history_append)
+        return auto_downloader, calls
+
+    def test_blocked_pick_skipped_and_recorded(self, monkeypatch):
+        auto_downloader, calls = self._wire(
+            monkeypatch, {"status": "blocked",
+                          "reason": "contains executable/blocked file: x.exe"})
+        summary = asyncio.run(auto_downloader.check_watchlist())
+
+        assert summary["downloaded"] == 0
+        g = calls["guarded"][0]
+        assert g["force"] is False                      # never auto-force
+        assert g["release_title"] == "Heat.1995.1080p.BluRay"
+        assert g["size"] == 8 * GB
+        assert g["mode"] == "movie"
+        patch = calls["updates"][0]
+        assert "safety blocked" in patch["last_error"]
+        assert "x.exe" in patch["last_error"]
+        assert patch["safety_skipped"] == ["Heat.1995.1080p.BluRay"]
+        assert calls["history"] == []                   # nothing recorded as done
+
+    def test_warn_is_skipped_not_forced(self, monkeypatch):
+        auto_downloader, calls = self._wire(
+            monkeypatch, {"status": "warned", "reason": "contains archive"})
+        summary = asyncio.run(auto_downloader.check_watchlist())
+
+        assert summary["downloaded"] == 0
+        assert all(g["force"] is False for g in calls["guarded"])
+        assert "safety warned" in calls["updates"][0]["last_error"]
+
+    def test_clean_pick_downloads_normally(self, monkeypatch):
+        auto_downloader, calls = self._wire(monkeypatch, {"status": "added"})
+        summary = asyncio.run(auto_downloader.check_watchlist())
+
+        assert summary["downloaded"] == 1
+        assert calls["updates"][0]["status"] == "downloaded"
+        assert len(calls["history"]) == 1
+
+    def test_skipped_releases_excluded_next_cycle(self):
+        from services.auto_downloader import _without_blocked
+        item = {"safety_skipped": ["Bad.Release.1080p"]}
+        results = [{"title": "Bad.Release.1080p"}, {"title": "Good.Release.1080p"}]
+        assert _without_blocked(results, item) == [{"title": "Good.Release.1080p"}]
+        assert _without_blocked(results, {}) == results
