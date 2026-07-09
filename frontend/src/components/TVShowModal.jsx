@@ -37,6 +37,7 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
   const [expanded, setExpanded] = useState(false)
   const [trailerOpen, setTrailerOpen] = useState(false)
   const [detailTorrent, setDetailTorrent] = useState(null)
+  const [safetyMsg, setSafetyMsg] = useState(null)  // {level, reason, torrent?}
 
   useEffect(() => {
     document.body.classList.add('modal-open')
@@ -93,15 +94,29 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
   function handleDownloadSeason(seasonNum) { fetchTorrents(seasonNum, null) }
   function handleDownloadEpisode(seasonNum, episodeNum) { fetchTorrents(seasonNum, episodeNum) }
 
-  async function handleAdd(torrent) {
+  async function handleAdd(torrent, force = false) {
     if (!torrent.magnet) return alert('No magnet link available.')
     const seasonForFolder = scope.season ?? selectedSeason ?? 1
     setDownloading(torrent.title)
+    setSafetyMsg(null)
     try {
-      await api.addTorrent(torrent.magnet, show.title, seasonForFolder)
-      setDoneMsg(`Added to Season ${seasonForFolder}`)
-      setDone(true)
-      setTimeout(() => setDone(false), 4000)
+      const r = await api.addTorrent(torrent.magnet, show.title, seasonForFolder, {
+        release_title: torrent.title,
+        size: torrent.size,
+        info_hash: torrent.info_hash,
+        episode_count: scoringContext.episodeCount,
+        force,
+      })
+      const { status, reason } = r.data || {}
+      if (status === 'blocked') {
+        setSafetyMsg({ level: 'blocked', reason })
+      } else if (status === 'warned') {
+        setSafetyMsg({ level: 'warned', reason, torrent })
+      } else {
+        setDoneMsg(`Added to Season ${seasonForFolder}`)
+        setDone(true)
+        setTimeout(() => setDone(false), 4000)
+      }
     } catch (e) {
       const detail = e.response?.data?.detail
       alert(detail ? `Failed: ${detail}` : 'Failed to add torrent. Check qBittorrent connection.')
@@ -375,6 +390,24 @@ export default function TVShowModal({ show, onClose, api = DEFAULT_API, savePath
                 <Folder size={12} /> Will save to <code>{savePathHint}</code>
               </div>
 
+              {safetyMsg?.level === 'blocked' && (
+                <div className="safety-blocked">
+                  <AlertTriangle size={16} className="safety-icon" />
+                  <span>This release appears unsafe: {safetyMsg.reason}. Not downloaded.</span>
+                </div>
+              )}
+              {safetyMsg?.level === 'warned' && (
+                <div className="safety-warned">
+                  <AlertTriangle size={16} className="safety-icon" />
+                  <span>{safetyMsg.reason}</span>
+                  <button
+                    className="safety-override-btn"
+                    onClick={() => handleAdd(safetyMsg.torrent, true)}
+                  >
+                    Download anyway
+                  </button>
+                </div>
+              )}
               {done && (
                 <div className="success-banner">
                   <Check size={16} /> {doneMsg} — Jellyfin TV library will refresh when download finishes

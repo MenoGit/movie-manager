@@ -1,12 +1,20 @@
 from fastapi import APIRouter, Response
 from pydantic import BaseModel
-from services import prowlarr, qbittorrent, library, history, storage
+import os
+
+from services import prowlarr, qbittorrent, library, history, storage, safe_download
+from config import settings
 
 router = APIRouter(prefix="/downloads", tags=["downloads"])
 
 class AddTorrentRequest(BaseModel):
     magnet: str
     movie_title: str
+    # Optional safety-validation context (all back-compatible):
+    release_title: str | None = None   # raw release name for parsing
+    size: int | None = None            # bytes, from the search result
+    info_hash: str | None = None
+    force: bool = False                # bypass WARN-level findings only
 
 @router.get("/search")
 async def search_torrents(q: str, year: int | None = None):
@@ -16,8 +24,17 @@ async def search_torrents(q: str, year: int | None = None):
 
 @router.post("/add")
 async def add_torrent(req: AddTorrentRequest):
-    """Add torrent to qBit, returns save path."""
-    result = await qbittorrent.add_torrent(req.magnet, req.movie_title)
+    """Safety-validated add: name/size pre-checks, then a paused add whose
+    file list is inspected before the download is allowed to start."""
+    safe_title = "".join(c for c in req.movie_title if c.isalnum() or c in " ._-").strip()
+    save_path = os.path.join(settings.movies_path, safe_title)
+    result = await safe_download.guarded_add(
+        url=req.magnet, save_path=save_path, category="movies",
+        release_title=req.release_title, size=req.size, mode="movie",
+        info_hash=req.info_hash, force=req.force,
+    )
+    if result["status"] == "added":
+        result.update(save_path=save_path, title=safe_title)
     return result
 
 @router.get("/queue")

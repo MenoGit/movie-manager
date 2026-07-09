@@ -84,6 +84,53 @@ async def add_tv_torrent(magnet: str, show_title: str, season_number: int) -> di
     return {"save_path": save_path, "show": safe_show, "season": int(season_number)}
 
 
+async def add_torrent_paused(url: str, save_path: str, category: str, tag: str):
+    """Add a torrent in paused state, tagged for later lookup — used by the
+    safety flow to inspect the file list before any data transfers."""
+    async with _get_client() as client:
+        r = await client.post("/api/v2/torrents/add", data={
+            "urls": _rewrite_for_host(url),
+            "savepath": save_path,
+            "category": category,
+            "paused": "true",
+            "tags": tag,
+        })
+        r.raise_for_status()
+
+
+async def find_hash_by_tag(tag: str) -> str | None:
+    """Hash of the (single) torrent carrying `tag`, or None if not yet listed."""
+    async with _get_client() as client:
+        r = await client.get("/api/v2/torrents/info", params={"tag": tag})
+        r.raise_for_status()
+        torrents = r.json()
+    return torrents[0]["hash"] if torrents else None
+
+
+async def get_torrent_files(torrent_hash: str) -> list[str]:
+    """File names inside a torrent. Empty until metadata is available
+    (immediate for .torrent adds; magnets need DHT metadata first)."""
+    async with _get_client() as client:
+        r = await client.get("/api/v2/torrents/files", params={"hash": torrent_hash})
+        if r.status_code == 404:
+            return []
+        r.raise_for_status()
+        return [f["name"] for f in r.json()]
+
+
+async def resume_torrent(torrent_hash: str):
+    async with _get_client() as client:
+        r = await client.post("/api/v2/torrents/resume", data={"hashes": torrent_hash})
+        r.raise_for_status()
+
+
+async def remove_tag(torrent_hash: str, tag: str):
+    """Drop the safety-flow lookup tag once the torrent is cleared to run."""
+    async with _get_client() as client:
+        await client.post("/api/v2/torrents/removeTags",
+                          data={"hashes": torrent_hash, "tags": tag})
+
+
 async def get_torrents(category: str = "movies") -> list:
     """Get active torrents for a category. Defaults to 'movies' for back-compat."""
     async with _get_client() as client:

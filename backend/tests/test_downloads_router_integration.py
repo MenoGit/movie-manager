@@ -107,11 +107,19 @@ class TestQueueFlow:
 
 
 class TestOtherEndpoints:
-    def test_add_endpoint_delegates(self, mock_http):
+    def test_add_endpoint_guarded_flow(self, mock_http):
+        # Adds are safety-gated now: paused add -> file inspection -> resume.
+        # Deep coverage lives in test_safety.py; this checks the happy path
+        # keeps returning the save-path contract.
+        magnet = "magnet:?xt=urn:btih:" + "b" * 40
         mock_http.add("POST", "/api/v2/auth/login", text="Ok.")
         mock_http.add("POST", "/api/v2/torrents/add", text="Ok.")
+        mock_http.add("GET", "/api/v2/torrents/files", json=[{"name": "Heat.mkv"}])
+        mock_http.add("POST", "/api/v2/torrents/removeTags", text="")
+        mock_http.add("POST", "/api/v2/torrents/resume", text="")
         result = asyncio.run(downloads.add_torrent(
-            downloads.AddTorrentRequest(magnet="magnet:?x", movie_title="Heat")))
+            downloads.AddTorrentRequest(magnet=magnet, movie_title="Heat")))
+        assert result["status"] == "added"
         assert result["title"] == "Heat"
         assert result["save_path"].endswith("/Heat")
 

@@ -1,7 +1,10 @@
 from typing import Optional
 from fastapi import APIRouter
 from pydantic import BaseModel
-from services import prowlarr, qbittorrent, library, history
+import os
+
+from services import prowlarr, qbittorrent, library, history, safe_download
+from config import settings
 
 router = APIRouter(prefix="/anime-downloads", tags=["anime-downloads"])
 
@@ -10,6 +13,12 @@ class AddAnimeTorrentRequest(BaseModel):
     magnet: str
     show_title: str
     season_number: int
+    # Optional safety-validation context (all back-compatible):
+    release_title: str | None = None
+    size: int | None = None
+    episode_count: int | None = None
+    info_hash: str | None = None
+    force: bool = False
 
 
 @router.get("/search")
@@ -23,9 +32,19 @@ async def search_anime_torrents(q: str, season: Optional[int] = None,
 
 @router.post("/add")
 async def add_anime_torrent(req: AddAnimeTorrentRequest):
-    """Save under the TV-Shows path so the TV agent picks it up; qBit
-    category is 'anime' so it queues separately from regular TV downloads."""
-    return await qbittorrent.add_anime_torrent(req.magnet, req.show_title, req.season_number)
+    """Safety-validated anime add. Saves under the TV-Shows path so the TV
+    agent picks it up; qBit category 'anime' keeps its queue separate."""
+    safe_show = "".join(c for c in req.show_title if c.isalnum() or c in " ._-").strip()
+    save_path = os.path.join(settings.tv_shows_path, safe_show,
+                             f"Season {int(req.season_number):02d}")
+    result = await safe_download.guarded_add(
+        url=req.magnet, save_path=save_path, category="anime",
+        release_title=req.release_title, size=req.size, mode="tv",
+        episode_count=req.episode_count, info_hash=req.info_hash, force=req.force,
+    )
+    if result["status"] == "added":
+        result.update(save_path=save_path, show=safe_show, season=int(req.season_number))
+    return result
 
 
 @router.get("/queue")

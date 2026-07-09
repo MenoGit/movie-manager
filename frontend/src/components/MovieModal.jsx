@@ -27,6 +27,7 @@ export default function MovieModal({ movie, onClose }) {
   const [showAll, setShowAll] = useState(false)
   const [trailerOpen, setTrailerOpen] = useState(false)
   const [detailTorrent, setDetailTorrent] = useState(null)
+  const [safetyMsg, setSafetyMsg] = useState(null)  // {level, reason, torrent?}
 
   const scoringContext = useMemo(
     () => ({ mode: 'movie', runtimeMin: detail?.runtime || null }),
@@ -77,13 +78,26 @@ export default function MovieModal({ movie, onClose }) {
     setLoading(false)
   }
 
-  async function handleDownload(torrent) {
+  async function handleDownload(torrent, force = false) {
     if (!torrent.magnet) return alert('No magnet link available for this torrent.')
     setDownloading(torrent.title)
+    setSafetyMsg(null)
     try {
-      await addTorrent(torrent.magnet, movie.title)
-      setDone(true)
-      setTimeout(() => setDone(false), 4000)
+      const r = await addTorrent(torrent.magnet, movie.title, {
+        release_title: torrent.title,
+        size: torrent.size,
+        info_hash: torrent.info_hash,
+        force,
+      })
+      const { status, reason } = r.data || {}
+      if (status === 'blocked') {
+        setSafetyMsg({ level: 'blocked', reason })
+      } else if (status === 'warned') {
+        setSafetyMsg({ level: 'warned', reason, torrent })
+      } else {
+        setDone(true)
+        setTimeout(() => setDone(false), 4000)
+      }
     } catch (e) {
       const detail = e.response?.data?.detail
       alert(detail ? `Failed to add torrent: ${detail}` : 'Failed to add torrent. Check qBittorrent connection.')
@@ -215,6 +229,24 @@ export default function MovieModal({ movie, onClose }) {
             />
           </div>
 
+          {safetyMsg?.level === 'blocked' && (
+            <div className="safety-blocked">
+              <AlertTriangle size={16} className="safety-icon" />
+              <span>This release appears unsafe: {safetyMsg.reason}. Not downloaded.</span>
+            </div>
+          )}
+          {safetyMsg?.level === 'warned' && (
+            <div className="safety-warned">
+              <AlertTriangle size={16} className="safety-icon" />
+              <span>{safetyMsg.reason}</span>
+              <button
+                className="safety-override-btn"
+                onClick={() => handleDownload(safetyMsg.torrent, true)}
+              >
+                Download anyway
+              </button>
+            </div>
+          )}
           {done && (
             <div className="success-banner">
               <Check size={16} /> Added to qBittorrent — Jellyfin will update when download finishes

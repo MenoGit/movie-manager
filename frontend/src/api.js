@@ -126,8 +126,8 @@ export const searchAnimeTorrents = (q, season, episode, year) =>
     ...(episode != null && { episode }),
     ...(year && { year }),
   }})
-export const addAnimeTorrent = (magnet, show_title, season_number) =>
-  api.post('/anime-downloads/add', { magnet, show_title, season_number })
+export const addAnimeTorrent = (magnet, show_title, season_number, extra = {}) =>
+  api.post('/anime-downloads/add', { magnet, show_title, season_number, ...extra })
 export const getAnimeQueue = () => api.get('/anime-downloads/queue')
 export const deleteAnimeTorrent = (hash) => api.delete(`/anime-downloads/${hash}`)
 export const refreshAnimeLibrary = () => api.post('/anime-downloads/refresh')
@@ -140,8 +140,8 @@ export const searchTVTorrents = (q, season, episode, year) =>
     ...(episode != null && { episode }),
     ...(year && { year }),
   }})
-export const addTVTorrent = (magnet, show_title, season_number) =>
-  api.post('/tv-downloads/add', { magnet, show_title, season_number })
+export const addTVTorrent = (magnet, show_title, season_number, extra = {}) =>
+  api.post('/tv-downloads/add', { magnet, show_title, season_number, ...extra })
 export const getTVQueue = () => api.get('/tv-downloads/queue')
 export const deleteTVTorrent = (hash) => api.delete(`/tv-downloads/${hash}`)
 export const refreshTVLibrary = () => api.post('/tv-downloads/refresh')
@@ -149,7 +149,10 @@ export const refreshTVLibrary = () => api.post('/tv-downloads/refresh')
 // Downloads
 export const searchTorrents = (q, year) =>
   api.get('/downloads/search', { params: { q, ...(year && { year }) } })
-export const addTorrent = (magnet, movie_title) => api.post('/downloads/add', { magnet, movie_title })
+// extra: optional safety-validation context {release_title, size, info_hash,
+// episode_count, force} — see backend services/safety.py
+export const addTorrent = (magnet, movie_title, extra = {}) =>
+  api.post('/downloads/add', { magnet, movie_title, ...extra })
 export const getQueue = () => api.get('/downloads/queue')
 export const deleteTorrent = (hash) => api.delete(`/downloads/${hash}`)
 export const refreshLibrary = () => api.post('/downloads/refresh')
